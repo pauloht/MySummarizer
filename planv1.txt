@@ -1,0 +1,22 @@
+maybe create my own api key for that
+	Feature Chapters
+		- Every x Messages create an summarized version of events
+		- the events will be logged in a permanent visible lorebook
+		- lorebook will gradually increase its weight
+		- hidden previous message summarized
+
+xxxxxxxxxxxxxxxxxxxxxx
+	Feature Arc
+		- disable all previous messages
+		- has higher default weight than 
+		- accumulate messages in a big arc summarizer.
+
+	Feature Character Lorebook?
+	for every character that appear on the history
+		- check if it has a lorebook associate and get the data
+		- generate a new lorebook for the character and disable the old one
+		- physical appearance
+		- current description
+		- current objective
+		- current emotion
+		- last events

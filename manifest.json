@@ -1,0 +1,9 @@
+{
+    "display_name": "Plenorio Little Extension",
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Pedro Lenorio",
+    "version": "1.0.0",
+}
