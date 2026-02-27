@@ -8,7 +8,7 @@ import { extension_settings, getContext, loadExtensionSettings } from "../../../
 import { saveSettingsDebounced } from "../../../../script.js";
 
 // Keep track of where your extension is located, name should match repo name
-const extensionName = "st-extension-example";
+const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const extensionSettings = extension_settings[extensionName];
 const defaultSettings = {};
@@ -60,4 +60,56 @@ jQuery(async () => {
 
   // Load settings when starting things up (if you have any)
   loadSettings();
+
+  console.log("I'm online bitches.");
 });
+
+SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'repeat',
+    callback: (namedArgs, unnamedArgs) => {
+        return Array(namedArgs.times ?? 5)
+            .fill(unnamedArgs.toString())
+            .join(isTrueBoolean(namedArgs.space.toString()) ? ' ' : '')
+        ;
+    },
+    aliases: ['example-command'],
+    returns: 'the repeated text',
+    namedArgumentList: [
+        SlashCommandNamedArgument.fromProps({ name: 'times',
+            description: 'number of times to repeat the text',
+            typeList: ARGUMENT_TYPE.NUMBER,
+            defaultValue: '5',
+        }),
+        SlashCommandNamedArgument.fromProps({ name: 'space',
+            description: 'whether to separate the texts with a space',
+            typeList: ARGUMENT_TYPE.BOOLEAN,
+            defaultValue: 'off',
+            enumList: ['on', 'off'],
+        }),
+    ],
+    unnamedArgumentList: [
+        SlashCommandArgument.fromProps({ description: 'the text to repeat',
+            typeList: ARGUMENT_TYPE.STRING,
+            isRequired: true,
+        }),
+    ],
+    helpString: `
+        <div>
+            Repeats the provided text a number of times.
+        </div>
+        <div>
+            <strong>Example:</strong>
+            <ul>
+                <li>
+                    <pre><code class="language-stscript">/repeat foo</code></pre>
+                    returns "foofoofoofoofoo"
+                </li>
+                <li>
+                    <pre><code class="language-stscript">/repeat times=3 space=on bar</code></pre>
+                    returns "bar bar bar"
+                </li>
+            </ul>
+        </div>
+    `,
+}));
+
+console.log("I'm even here?.");
