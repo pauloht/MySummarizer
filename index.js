@@ -20,11 +20,9 @@ import {
 // Keep track of where your extension is located, name should match repo name
 const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const extensionSettings = extension_settings[extensionName];
 const defaultSettings = {};
 
-import { getCurrentChatId, name1, name2, chat_metadata, saveMetadata } from '../../../../script.js';
-import { write } from "node:fs";
+import { getCurrentChatId } from '../../../../script.js';
 
 const MODULE_NAME = 'LenorioGarden';
 let context = undefined;
@@ -191,49 +189,49 @@ function getEntryByComment(lorebookData, title) {
 
 async function commandSendLLMTask_BreakScenes(){
   try {
-    let content = await readFromLorebook(KEY_DEBUG_CHAT_CONTENT);
+    const prompt = await readFromLorebook(KEY_DEBUG_CHAT_CONTENT);
 
     if (!content){
       console.log("!content");
       return;
     }
-    console.log("Content read");
-    const { generateRaw } = getContext();
+    if (content.length <= 10){
+      console.log("small content?");
+      return;
+    }
+    console.log(`Content read wit size ${content.length}`);
+    const generateRaw  = context.generateRaw;
+    const systemPrompt =   
+`You are an expert narrative analyst and story chronicler. You will be provided with the text of a roleplay adventure. Your objective is to segment the narrative into distinct scenes and extract deep psychological and narrative data from each.
 
-    const systemPrompt = 
-    `
-    You are an expert narrative analyst and story chronicler. You will be provided with the text of a roleplay adventure. Your objective is to segment the narrative into distinct scenes and extract deep psychological and narrative data from each.
+### DEFINITION OF A SCENE:
+  - A new scene begins when there is a significant change in location, a jump in time, or a major shift in the characters present. 
+  - ONLY analyze scenes that contain MORE THAN ONE active character. Skip solo scenes or internal monologues entirely.
 
-    ### DEFINITION OF A SCENE:
-      - A new scene begins when there is a significant change in location, a jump in time, or a major shift in the characters present. 
-      - ONLY analyze scenes that contain MORE THAN ONE active character. Skip solo scenes or internal monologues entirely.
+### INSTRUCTIONS:
+  For every valid scene, extract the information and format your response EXACTLY using the template below. 
 
-    ### INSTRUCTIONS:
-      For every valid scene, extract the information and format your response EXACTLY using the template below. 
-
-    ### OUTPUT TEMPLATE:
-      **Scene [Number]: [Provide a catchy, 3-5 word title]**
-      * **Short Description:** [A 1-2 sentence summary of the scene's core event.]
-      * **Long Description:** [A detailed paragraph explaining what happened, the context, and how the scene progressed from beginning to end.]
-      * **Key Plot Revelation:** [Optional: 1 sentence noting any important lore, secrets, or plot progression revealed here.]
-      * **Participants Analysis:**
-      *(Repeat the following block for EVERY active character in the scene)*
-      * **Character Name:** [Name]
-        * **Feelings:** [Emotion 1, Emotion 2, Emotion 3][Emotion examples: Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrased, Flirty, Neutral]
-        * **Perception of Interaction:** [Must be exactly one of: Very Negative, Negative, Neutral, Positive, Very Positive]
-        * **Reasoning:** [1 sentence justifying their perception based on the text]
-    ***
-    Begin your analysis with Scene 1 based on the provided text.
-    `;
-    // const prefill = '';
-
-    // const result = await generateRaw({
-    //     systemPrompt,
-    //     content,
-    //     prefill,
-    // });
-    // console.log("prompt sent");
-    await logToLorebook(KEY_DEBUG_SCENE_BREAKDOWN, systemPrompt);
+### OUTPUT TEMPLATE:
+  **Scene [Number]: [Provide a catchy, 3-5 word title]**
+  * **Short Description:** [A 1-2 sentence summary of the scene's core event.]
+  * **Long Description:** [A detailed paragraph explaining what happened, the context, and how the scene progressed from beginning to end.]
+  * **Key Plot Revelation:** [Optional: 1 sentence noting any important lore, secrets, or plot progression revealed here.]
+  * **Participants Analysis:**
+  *(Repeat the following block for EVERY active character in the scene)*
+  * **Character Name:** [Name]
+    * **Feelings:** [Emotion 1, Emotion 2, Emotion 3][Emotion examples: Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrased, Flirty, Neutral]
+    * **Perception of Interaction:** [Must be exactly one of: Very Negative, Negative, Neutral, Positive, Very Positive]
+    * **Reasoning:** [1 sentence justifying their perception based on the text]
+***
+Begin your analysis with Scene 1 based on the provided text.`
+    const prefill = '';
+    const result = await generateRaw({
+        systemPrompt,
+        prompt,
+        prefill,
+    });
+    console.log("prompt sent");
+    await logToLorebook(KEY_DEBUG_SCENE_BREAKDOWN, result);
     console.log("lorebook created");
   }catch (error) {
         console.error('readFromLorebookCurrentVisibleChat error:', error);
@@ -260,15 +258,9 @@ async function readFromLorebook(logTitle){
     let entry = getEntryByComment(lorebookData, logTitle);
 
     if (!entry){
-        console.log(`Entry with name ${logTitle}. not found.`);
+        console.log(`Entry with name ${logTitle}  not found.`);
         return;
-    }
-    const result = await generateRaw({
-        systemPrompt,
-        prompt,
-        prefill,
-    });
-    
+    }    
     return entry.content;
 }
 
