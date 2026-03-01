@@ -191,15 +191,15 @@ async function commandSendLLMTask_BreakScenes(){
   try {
     const prompt = await readFromLorebook(KEY_DEBUG_CHAT_CONTENT);
 
-    if (!content){
-      console.log("!content");
+    if (!prompt){
+      console.log("!prompt");
       return;
     }
-    if (content.length <= 10){
-      console.log("small content?");
+    if (prompt.length <= 10){
+      console.log("small prompt?");
       return;
     }
-    console.log(`Content read wit size ${content.length}`);
+    console.log(`prompt read wit size ${prompt.length}`);
     const generateRaw  = context.generateRaw;
     const systemPrompt =   
 `You are an expert narrative analyst and story chronicler. You will be provided with the text of a roleplay adventure. Your objective is to segment the narrative into distinct scenes and extract deep psychological and narrative data from each.
