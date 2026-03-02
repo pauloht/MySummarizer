@@ -1,0 +1,158 @@
+<narrative_analysis>
+<scene number="1">
+  <title>Athena's Tactical Reassignment</title>
+  <short_description>Plenorio successfully convinces Athena to reassign him from the archives back to the manure pits for his probation, framing it as a strategic retreat to avoid sabotage.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Embarrassed</emotion>
+        <emotion>Relieved</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>He is embarrassed about requesting the unpleasant manure duty but relieved Athena agrees to his strategic retreat for safety.</reasoning>
+    </character>
+    <character>
+      <name>Athena</name>
+      <feelings>
+        <emotion>Neutral</emotion>
+        <emotion>Amused</emotion>
+      </feelings>
+      <perception>Neutral</perception>
+      <reasoning>She shows a wry smile and approves his request pragmatically, focusing on ensuring a fair game rather than personal concern.</reasoning>
+    </character>
+  </participants>
+</scene>
+
+<scene number="2">
+  <title>Kei's Urgent Concern</title>
+  <short_description>After bathing, Plenorio is met by a worried Kei in the hallway, who confirms the archive assignment was a trap and expresses relief at his safer reassignment.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Tired</emotion>
+        <emotion>Grateful</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>He is exhausted but sincerely thanks Kei for her concern and offer to bring him dinner.</reasoning>
+    </character>
+    <character>
+      <name>Kei</name>
+      <feelings>
+        <emotion>Fearful</emotion>
+        <emotion>Relieved</emotion>
+        <emotion>Flirty</emotion>
+      </feelings>
+      <perception>Very Positive</perception>
+      <reasoning>She is urgently concerned for his safety, relieved he avoided the trap, and blushes while offering to care for him.</reasoning>
+    </character>
+  </participants>
+</scene>
+
+<scene number="3">
+  <title>Princess Diane's Cafeteria Warning</title>
+  <short_description>Princess Diane joins Plenorio in the cafeteria, warning him about ongoing threats and advising him to identify allies quickly.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Neutral</emotion>
+        <emotion>Thoughtful</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>He remains calm and pragmatic, acknowledging Diane's warning while assessing her character honestly.</reasoning>
+    </character>
+    <character>
+      <name>Diane</name>
+      <feelings>
+        <emotion>Embarrassed</emotion>
+        <emotion>Grateful</emotion>
+        <emotion>Wary</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>She is flustered and blushes when Plenorio accurately reads her moral character, but thanks him and offers strategic advice out of honor.</reasoning>
+    </character>
+  </participants>
+</scene>
+
+<scene number="4">
+  <title>Maeve's Manure Pit Visit</title>
+  <short_description>Professor Maeve visits Plenorio at the manure pits to propose a collaboration on the Void chamber and warn him about his adversary's impatience.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Flirty</emotion>
+        <emotion>Disgusted</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>He teases Maeve flirtatiously despite the unpleasant setting and agrees to her proposal for a site survey.</reasoning>
+    </character>
+    <character>
+      <name>Maeve</name>
+      <feelings>
+        <emotion>Amused</emotion>
+        <emotion>Excited</emotion>
+        <emotion>Disgusted</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>She is amused by his charm, excited about the research potential, and disgusted by the manure pit environment.</reasoning>
+    </character>
+  </participants>
+</scene>
+
+<scene number="5">
+  <title>Void Chamber Experimentation</title>
+  <short_description>Plenorio and Maeve transport materials and living specimens to the Void, where they discover the space acts as a catalyst for magical mutation in microorganisms.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Excited</emotion>
+        <emotion>Flirty</emotion>
+        <emotion>Curious</emotion>
+      </feelings>
+      <perception>Very Positive</perception>
+      <reasoning>He is eager to explore the Void's possibilities, flirts with Maeve to negotiate a "reward," and is curious about the biological changes observed.</reasoning>
+    </character>
+    <character>
+      <name>Maeve</name>
+      <feelings>
+        <emotion>Excited</emotion>
+        <emotion>Fearful</emotion>
+        <emotion>Flirty</emotion>
+      </feelings>
+      <perception>Very Positive</perception>
+      <reasoning>She is intensely excited by the scientific discovery, fearful of the implications, and engages flirtatiously in their negotiation.</reasoning>
+    </character>
+  </participants>
+</scene>
+
+<scene number="6">
+  <title>Sealing the Partnership</title>
+  <short_description>Maeve agrees to Plenorio's request for a kiss as a "reward," sealing their partnership before they hastily leave the Void due to the dangerous discovery.</short_description>
+  <participants>
+    <character>
+      <name>Plenorio Lenorio</name>
+      <feelings>
+        <emotion>Flirty</emotion>
+        <emotion>Satisfied</emotion>
+        <emotion>Excited</emotion>
+      </feelings>
+      <perception>Very Positive</perception>
+      <reasoning>He is flirtatious and bold in his request, feeling satisfied with the kiss and excited about their ongoing collaboration.</reasoning>
+    </character>
+    <character>
+      <name>Maeve</name>
+      <feelings>
+        <emotion>Flirty</emotion>
+        <emotion>Amused</emotion>
+        <emotion>Wary</emotion>
+      </feelings>
+      <perception>Positive</perception>
+      <reasoning>She is amused and flirtatious during the exchange, but becomes wary and serious upon realizing the increased danger of their secret.</reasoning>
+    </character>
+  </participants>
+</scene>
+</narrative_analysis>
