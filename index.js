@@ -43,6 +43,16 @@ const KEY_DEBUG_XML_SCENE_BREAKDOWN = "scene_breakdown";
  * @type {String|null}
  */
 const KEY_INTERNALINFO_ARRAY_CHARACTERS = "characters_list";
+/**
+ * Hold all new characters found in last sweep.
+ * @type {String|null}
+ */
+const KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS = "new_characters_list";
+/**
+ * Key to entry xml process content
+ * @type {String|null}
+ */
+const KEY_INTERNALINFO_XML_NEW_CHARACTERS = "new_characters_list_xml";
 
 
 if (!extension_settings[MODULE_NAME]) {
@@ -132,6 +142,14 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio',
     returns: `temporary command for testing`,
 }));
 
+SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio_zprocess_newcharacters',
+    callback: () => {
+        context = getContext();
+        processNewCharacterData()
+    },
+    returns: `temporary command for testing`,
+}));
+
 async function testCommand(){
     console.log("testCommand!")
     context = getContext();
@@ -150,6 +168,55 @@ async function processCharacterData(){
     const prompt = await writeToLorebookCurrentVisibleChat();
     await readFromLorebookCurrentVisibleChat(prompt);
     return "";
+}
+
+async function processNewCharacterData(){
+  let toast = null;
+  try{
+    const prompt = 
+      "ONLY WRITE ABOUT CHARACTERS:" + await readFromLorebook(KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS) + "\n" +
+      "<CHAT_LOG>" +
+      await readFromLorebook(KEY_DEBUG_CHAT_CONTENT) + "\n" +
+      "</CHAT_LOG>"
+    const generateRaw  = context.generateRaw;
+    const systemPrompt =   
+  `You are a character data extraction tool. I will provide a chat log and a list of character name. Extract the character's appearance, personality, and job into the following XML structure:
+
+<characters>
+<character> -- FOR EACH CHARACTER
+  <name></name>
+  <appearance></appearance>
+  <personality></personality>
+  <job></job>
+</character>
+<characters>
+
+Rules:
+1. Provide valid XML only.
+2. No preamble or post-analysis.
+3. If information is missing, fill the tag with "Unknown".
+4. Use concise, descriptive language.`
+    toast = toastr.info("LLM is thinking...", null, { 
+    timeOut: 0, 
+    extendedTimeOut: 0,
+    tapToDismiss: false // Optional: prevents user from clicking it away early
+    });
+    const prefill = '';
+    const result = await generateRaw({
+        systemPrompt,
+        prompt,
+        prefill,
+    });
+    console.log(prompt)
+    console.log("prompt sent");
+    await writeToLorebook(KEY_INTERNALINFO_XML_NEW_CHARACTERS, result);
+  }catch(error){
+    console.error('processNewCharacterData error:', error);
+  }finally{
+    if (toast){
+      toastr.clear(toast);
+    }
+  }
 }
 
 async function readFromLorebookCurrentVisibleChat(prompt){
@@ -241,9 +308,14 @@ async function commandSendLLMTask_BreakScenes(prompt){
 - ONLY analyze scenes that contain MORE THAN ONE active character.
 
 ### CONSTRAINTS & VALIDATION:
-1. **Allowed Emotions:** You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
-2. **Emotion Count:** Provide at least ONE emotion. You may provide up to THREE if the context supports it, but do not force more than one if it is not present in the text.
-3. **Perception:** Must be exactly one of: [Very Negative, Negative, Neutral, Positive, Very Positive].
+1. **Naming Convention:** Extract the unique personal name ONLY. 
+   - DO NOT include formal titles (e.g., Professor, Doctor, Lady, Sir).
+   - DO NOT include ranks or roles (e.g., Captain, Soldier, Guard, Priest).
+   - EXAMPLE: Use "John" instead of "Captain John"; use "Elara" instead of "Professor Elara".
+   - EXCEPTION: If a character is unnamed and only known by a role (e.g., "The Barkeeper"), use that role as the name.
+2. **Allowed Emotions:** You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
+3. **Emotion Count:** Provide at least ONE emotion. You may provide up to THREE if the context supports it, but do not force more than one if it is not present in the text.
+4. **Perception:** Must be exactly one of: [Very Negative, Negative, Neutral, Positive, Very Positive].
 
 ### OUTPUT TEMPLATE:
 Wrap your response in <narrative_analysis>. Use the following XML structure:
@@ -281,7 +353,7 @@ Begin your analysis with Scene 1 based on the provided text.
     console.log("prompt sent");
     await writeToLorebook(KEY_DEBUG_XML_SCENE_BREAKDOWN, result);
     console.log("lorebook created");
-    //await processNarrativeXML(result);
+    await processNarrativeXML(result);
   }catch (error) {
         console.error('readFromLorebookCurrentVisibleChat error:', error);
         return { success: false, error: ('readFromLorebookCurrentVisibleChat', 'writeToLorebookCurrentVisibleChat-message: {{message}}', { message: error.message }) };
@@ -407,6 +479,7 @@ async function extractData(xmlDoc){
 
 async function processNewCharacters(characters){
   console.log(`process character todo - ${characters}`);
+  await writeToLorebook(KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(characters));
 }
 
 async function readFromLorebook(logTitle){
