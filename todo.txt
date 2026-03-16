@@ -1,0 +1,11 @@
+MARKDOWN FORMAT
+# Toby
+Appearance: Tall, handsome, blue eyes.
+Personality: Brave, reckless.
+
+ALTERNATIVE LOREBOOK FOR
+    CHARACTERS
+    LOCATIONS
+    DEBUG
+
+LOCATION LLM SENT/PARSE/UPDATE

@@ -5,27 +5,18 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 
 //You'll likely need to import some other functions from the main script
+import { parseExistingMemoryXML, serializeMemoriesToXML } from './xmlutil_memory.js';
+import { parseCharacterXML, serializeCharactersToXML } from './xmlutil_characters.js';
+import { readFromLorebookV2, writeToLorebookV2} from './my_lorebook.js';
 import { saveSettingsDebounced } from "../../../../script.js";
 import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
 import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
-import { ARGUMENT_TYPE, SlashCommandArgument, SlashCommandNamedArgument } from '../../../slash-commands/SlashCommandArgument.js';
-import {
-    METADATA_KEY,
-    loadWorldInfo,
-    createWorldInfoEntry,
-    saveWorldInfo,
-    reloadEditor
-} from '../../../world-info.js';
-
 // Keep track of where your extension is located, name should match repo name
 const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const defaultSettings = {};
-
-import { getCurrentChatId } from '../../../../script.js';
-
-const MODULE_NAME = 'LenorioGarden';
 let context = undefined;
+const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
 
 
 /**
@@ -53,15 +44,17 @@ const KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS = "new_characters_list";
  * @type {String|null}
  */
 const KEY_INTERNALINFO_XML_NEW_CHARACTERS = "new_characters_list_xml";
+/**
+ * Key to entry name for visible chat content.
+ * @type {String|null}
+ */
+const SUBSECTION_DEBUG = "debug";
+/**
+ * Key to entry name for visible chat content.
+ * @type {String|null}
+ */
+const SUBSECTION_CHARACTER = "characters_data";
 
-
-if (!extension_settings[MODULE_NAME]) {
-    extension_settings[MODULE_NAME] = {
-        debug_logs: [],
-        last_run: null
-    };
-}
- 
 // Loads the extension settings if they exist, otherwise initializes them to the defaults.
 async function loadSettings() {
   //Create the settings if they don't exist
@@ -115,19 +108,6 @@ jQuery(async () => {
   console.log("Im online bitches.");
 });
 
-/**
- * Generates a safe slug from a string
- * @param {string} str - String to slugify
- * @returns {string} Safe slug
- */
-function safeSlug(str) {
-    return str
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 50);
-}
-
 SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio_processCharacterData',
     callback: () => {
         processCharacterData()
@@ -142,24 +122,18 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio',
     returns: `temporary command for testing`,
 }));
 
-SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio_zprocess_newcharacters',
-    callback: () => {
-        context = getContext();
-        processNewCharacterData()
-    },
-    returns: `temporary command for testing`,
-}));
-
 async function testCommand(){
-    console.log("testCommand!")
-    context = getContext();
-    const result = await readFromLorebook(KEY_DEBUG_XML_SCENE_BREAKDOWN);
-
-    if (!result){
-      console.error(`Failed to retrieve logbook entry ${KEY_DEBUG_XML_SCENE_BREAKDOWN}`);
-      return "";
+    const filePath = pathToFiles + "scene_breakdown.txt";
+    // Fetch the file via HTTP GET request
+    const response = await fetch(filePath);
+    
+    if (!response.ok) {
+        throw new Error(`Could not load file: ${response.statusText}`);
     }
-    await processNarrativeXML(result);
+    
+    // Convert the response to text
+    const systemPrompt = await response.text();
+    console.log("prompt is " + systemPrompt);
 }
 
 async function processCharacterData(){
@@ -170,13 +144,53 @@ async function processCharacterData(){
     return "";
 }
 
-async function processNewCharacterData(){
+async function processLLMXML_newcharacters(){
+  console.log("processLLMXML_newcharacters");
+  context = getContext();
+  const xmlNewCharacter = 
+  await readFromLorebookV2(
+    SUBSECTION_CHARACTER,
+    KEY_INTERNALINFO_XML_NEW_CHARACTERS
+  );
+  const rawData = parseCharacterXML(xmlNewCharacter);
+  const mapped = rawData.map(
+    v => {
+      return ({
+        name: v.name,
+        entry:
+          "<description_" + v.name + ">\n" +
+          "Appearance: " + v.appearance + "\n" +
+          "Personality:" + v.personality + "\n" +
+          "Job: " + v.job + "\n" +
+          "</description_" + v.name + ">"
+      });
+    }
+  )
+  for (const m of mapped) {
+    const lorebook_entry = `${m.name}_Description`;
+    console.log(`creating or updating lorebook ${lorebook_entry}`)
+    const lorebook_content = m.entry;
+    const keywords = [m.name,`${m.name}'s`];
+    const disabled = false;
+    await writeToLorebookV2(
+      SUBSECTION_CHARACTER,
+      lorebook_entry, lorebook_content, keywords, disabled);
+  };
+  return "";
+}
+
+async function sendLLM_newcharacters(){
   let toast = null;
   try{
     const prompt = 
-      "ONLY WRITE ABOUT CHARACTERS:" + await readFromLorebook(KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS) + "\n" +
+      "ONLY WRITE ABOUT CHARACTERS:" + 
+      await readFromLorebookV2(
+        SUBSECTION_CHARACTER,
+        KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS) + "\n" +
       "<CHAT_LOG>" +
-      await readFromLorebook(KEY_DEBUG_CHAT_CONTENT) + "\n" +
+      await readFromLorebookV2(
+        SUBSECTION_DEBUG,
+        KEY_DEBUG_CHAT_CONTENT) + "\n" +
       "</CHAT_LOG>"
     const generateRaw  = context.generateRaw;
     const systemPrompt =   
@@ -209,7 +223,9 @@ Rules:
     });
     console.log(prompt)
     console.log("prompt sent");
-    await writeToLorebook(KEY_INTERNALINFO_XML_NEW_CHARACTERS, result);
+    await writeToLorebookV2(
+      SUBSECTION_CHARACTER,
+      KEY_INTERNALINFO_XML_NEW_CHARACTERS, result);
   }catch(error){
     console.error('processNewCharacterData error:', error);
   }finally{
@@ -260,31 +276,15 @@ async function writeToLorebookCurrentVisibleChat(){
               .join("\n");
           console.log(strAcumulador); 
           toastr.info(`size of msg: ${strAcumulador.length}`);
-          await writeToLorebook(KEY_DEBUG_CHAT_CONTENT, strAcumulador);
+          await writeToLorebookV2(
+            SUBSECTION_DEBUG,
+            KEY_DEBUG_CHAT_CONTENT,
+            strAcumulador);
           return strAcumulador;
     } catch (error) {
         console.error('writeToLorebookCurrentVisibleChat error:', error);
         return { success: false, error: ('writeToLorebookCurrentVisibleChat', 'writeToLorebookCurrentVisibleChat-message: {{message}}', { message: error.message }) };
     }
-}
-
-function getLoreBookName(){
-  if (context.characterId === undefined){
-    return null;
-  }
-  const newLorebookName = safeSlug(`${MODULE_NAME}-${getCurrentChatId()}`)
-  return newLorebookName;
-}
-
-/**
- * Finds an entry by its comment/title
- * @param {Object} lorebookData 
- * @param {string} title 
- */
-function getEntryByComment(lorebookData, title) {
-    // lorebookData.entries is an object where keys are UIDs. 
-    // We turn it into an array of values to search through it.
-    return Object.values(lorebookData.entries).find(entry => entry.comment === title);
 }
 
 async function commandSendLLMTask_BreakScenes(prompt){
@@ -300,45 +300,20 @@ async function commandSendLLMTask_BreakScenes(prompt){
     }
     console.log(`prompt read wit size ${prompt.length}`);
     const generateRaw  = context.generateRaw;
-    const systemPrompt =   
-`You are an expert narrative analyst and story chronicler. You will be provided with the text of a roleplay adventure. Your objective is to segment the narrative into distinct scenes and extract deep psychological and narrative data from each.
-
-### DEFINITION OF A SCENE:
-- A new scene begins when there is a significant change in location, a jump in time, or a major shift in the characters present. 
-- ONLY analyze scenes that contain MORE THAN ONE active character.
-
-### CONSTRAINTS & VALIDATION:
-1. **Naming Convention:** Extract the unique personal name ONLY. 
-   - DO NOT include formal titles (e.g., Professor, Doctor, Lady, Sir).
-   - DO NOT include ranks or roles (e.g., Captain, Soldier, Guard, Priest).
-   - EXAMPLE: Use "John" instead of "Captain John"; use "Elara" instead of "Professor Elara".
-   - EXCEPTION: If a character is unnamed and only known by a role (e.g., "The Barkeeper"), use that role as the name.
-2. **Allowed Emotions:** You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
-3. **Emotion Count:** Provide at least ONE emotion. You may provide up to THREE if the context supports it, but do not force more than one if it is not present in the text.
-4. **Perception:** Must be exactly one of: [Very Negative, Negative, Neutral, Positive, Very Positive].
-
-### OUTPUT TEMPLATE:
-Wrap your response in <narrative_analysis>. Use the following XML structure:
-
-<scene number="[Number]">
-  <title>[3-5 word title]</title>
-  <short_description>[1-2 sentence summary]</short_description>
-  <participants>
-    <character>
-      <name>[Character Name]</name>
-      <feelings>
-        <emotion>[Primary Emotion]</emotion>
-        <emotion>[Secondary Emotion - Optional]</emotion>
-        <emotion>[Tertiary Emotion - Optional]</emotion>
-      </feelings>
-      <perception>[Allowed Value]</perception>
-      <reasoning>[1 sentence justification]</reasoning>
-    </character>
-  </participants>
-</scene>
-
-Begin your analysis with Scene 1 based on the provided text.
-`
+    const filePath = pathToFiles + "scene_breakdown.txt";
+    // Fetch the file via HTTP GET request
+    const response = await fetch(filePath);
+    
+    if (!response.ok) {
+        throw new Error(`Could not load file: ${response.statusText}`);
+    }
+    
+    // Convert the response to text
+    const systemPrompt = await response.text();
+    if (!systemPrompt){
+      console.error("failed to parse prompt");
+      return;
+    }
     toast = toastr.info("LLM is thinking...", null, { 
     timeOut: 0, 
     extendedTimeOut: 0,
@@ -351,7 +326,10 @@ Begin your analysis with Scene 1 based on the provided text.
         prefill,
     });
     console.log("prompt sent");
-    await writeToLorebook(KEY_DEBUG_XML_SCENE_BREAKDOWN, result);
+    await writeToLorebookV2(
+      SUBSECTION_CHARACTER,
+      KEY_DEBUG_XML_SCENE_BREAKDOWN, 
+      result);
     console.log("lorebook created");
     await processNarrativeXML(result);
   }catch (error) {
@@ -441,7 +419,10 @@ async function extractData(xmlDoc){
     console.log("Characters found in this analysis:", currentDetectedCharacters);
 
     // 3. Read existing list from Lorebook
-    let rawLorebookData = await readFromLorebook(KEY_INTERNALINFO_ARRAY_CHARACTERS);
+    let rawLorebookData = 
+    await readFromLorebookV2(
+      SUBSECTION_CHARACTER,
+      KEY_INTERNALINFO_ARRAY_CHARACTERS);
     let knownCharacters = []; // Default to empty array
 
     // 4. Parse the lorebook data safely
@@ -468,7 +449,11 @@ async function extractData(xmlDoc){
 
         // 8. Save the FULL updated list back to the lorebook
         // Use the combined list, otherwise you overwrite and lose your old characters!
-        await writeToLorebook(KEY_INTERNALINFO_ARRAY_CHARACTERS, JSON.stringify(updatedCharacterList));
+        await writeToLorebookV2(
+          SUBSECTION_CHARACTER,
+          KEY_INTERNALINFO_ARRAY_CHARACTERS, 
+          JSON.stringify(updatedCharacterList)
+        );
         
         console.log("Lorebook updated successfully.");
     } else {
@@ -479,79 +464,11 @@ async function extractData(xmlDoc){
 
 async function processNewCharacters(characters){
   console.log(`process character todo - ${characters}`);
-  await writeToLorebook(KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(characters));
-}
-
-async function readFromLorebook(logTitle){
-    // 1. Load the Lorebook data
-    // If the book doesn't exist, this returns an empty object or fails
-    const bookName = getLoreBookName();
-
-    if (!bookName){
-      toastr.info("!bookName");
-      return;
-    }
-    let lorebookData = await loadWorldInfo(bookName);
-
-    if (!lorebookData || Object.keys(lorebookData).length === 0) {
-        console.log(`Book not found with name ${bookName}. You might need to create the book first or check your name.`);
-        return;
-    }
-    // 2. Check if an entry with this title already exists
-    let entry = getEntryByComment(lorebookData, logTitle);
-
-    if (!entry){
-        console.log(`Entry with name ${logTitle}  not found.`);
-        return;
-    }    
-    return entry.content;
-}
-
-async function writeToLorebook(logTitle, logContent, keywords = []) {
-    // 1. Load the Lorebook data
-    // If the book doesn't exist, this returns an empty object or fails
-    const bookName = getLoreBookName();
-
-    if (!bookName){
-      toastr.info("!bookName");
-      return;
-    }
-    let lorebookData = await loadWorldInfo(bookName);
-
-    // 2. Check if the book was actually loaded
-    // (If world_info_data doesn't have it, it might be a new book)
-    if (!lorebookData || Object.keys(lorebookData).length === 0) {
-        console.log(`Book not found with name ${bookName}. You might need to create the book first or check your name.`);
-        // Note: Creating a brand new book file usually requires a separate call 
-        // to createWorldInfoBook(bookName), but let's assume it exists for now.
-        return;
-    }
-
-    // 2. Check if an entry with this title already exists
-    let entry = getEntryByComment(lorebookData, logTitle);
-    
-    if (entry) {
-        console.log(`Updating existing entry: ${logTitle}`);
-    } else {
-        console.log(`Creating new entry: ${logTitle}`);
-        // 3. Only create if it doesn't exist
-        entry = createWorldInfoEntry(bookName, lorebookData);
-    }
-
-    // 4. Update the fields (whether new or existing)
-    entry.comment = logTitle; 
-    entry.content = logContent;
-    entry.key = Array.isArray(keywords) ? keywords : [];
-    
-    // We ensure it has an array for keys even if empty
-    if (!Array.isArray(entry.key)) entry.key = [];
-
-    // 5. Save the data back to the server
-    await saveWorldInfo(bookName, lorebookData, true);
-
-    // 6. Refresh the UI
-    reloadEditor(bookName);
-    //toastr.info("Entry uploaded successfully");
+  await writeToLorebookV2(
+    SUBSECTION_CHARACTER,
+    KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, 
+    JSON.stringify(characters));
+  sendLLM_newcharacters();
 }
 
 async function updateCharacterMemories(scenes){
@@ -584,7 +501,11 @@ async function updateCharacterMemories(scenes){
           const loreKey = `${name}_memory`;
           
           // Read existing memory lorebook entry
-          let rawData = await readFromLorebook(loreKey);
+          let rawData = 
+            await readFromLorebookV2(
+              SUBSECTION_CHARACTER,
+              loreKey
+            );
           let memoryList = [];
 
           // 3. If lorebook exists, parse the existing XML into a list
@@ -604,49 +525,14 @@ async function updateCharacterMemories(scenes){
           // 7. Save back to the Lorebook
           const keywords = [name, `${name}'s`];
           console.log("xml:" + finalXML);
-          await writeToLorebook(loreKey, finalXML, keywords);
+          await writeToLorebookV2(
+            SUBSECTION_CHARACTER,
+            loreKey, 
+            finalXML, 
+            keywords);
           console.log(`Updated memory for ${name}. Total memories stored: ${prunedList.length}`);
           //break;
       }
-  }
-
-  /** 
-   * HELPER: Converts XML string from Lorebook back into a JS Array
-   */
-  function parseExistingMemoryXML(xmlString) {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-      
-      // Check for errors
-      if (xmlDoc.querySelector("parsererror")) return [];
-
-      return Array.from(xmlDoc.getElementsByTagName("memory")).map(m => ({
-          memoryOwner: m.querySelector("memoryOwner")?.textContent,
-          shortDescription: m.querySelector("shortDescription")?.textContent,
-          feelings: m.querySelector("feelings")?.textContent,
-          perception: m.querySelector("perception")?.textContent,
-          reasoning: m.querySelector("reasoning")?.textContent
-      }));
-  }
-
-  /** 
-   * HELPER: Converts JS Array back into an XML string for the Lorebook
-   */
-  function serializeMemoriesToXML(memoryOwner, list) {
-      console.log("Serializando...");
-      console.log(list);
-      let xml = `<memories>\n`;
-      list.forEach(m => {
-          xml += `  <memory>
-    <memoryOwner>${memoryOwner}</memoryOwner>
-    <shortDescription>${m.shortDescription}</shortDescription>
-    <feelings>${m.feelings}</feelings>
-    <perception>${m.perception}</perception>
-    <reasoning>${m.reasoning}</reasoning>
-  </memory>\n`;
-      });
-      xml += `</memories>`;
-      return xml;
   }
 
   await _updateCharacterMemories(scenes);
