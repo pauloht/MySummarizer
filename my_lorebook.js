@@ -41,7 +41,8 @@ export async function readFromLorebookV2(subSection, logTitle){
     return entry.content;
 }
 
-export async function writeToLorebookV2(subSection, logTitle, logContent, keywords = [], disabled = false) {
+export async function writeToLorebookV2(
+    subSection, logTitle, logContent, keywords = [], disabled = false) {
     // 1. Load the Lorebook data
     // If the book doesn't exist, this returns an empty object or fails
     const bookName = getLoreBookName(subSection);
@@ -50,6 +51,15 @@ export async function writeToLorebookV2(subSection, logTitle, logContent, keywor
       toastr.info("!bookName");
       return;
     }
+    if (!subSection){
+      toastr.info("!subSection");
+      return; 
+    }
+    if (!logTitle){
+      toastr.info("!logTitle");
+      return; 
+    }
+    console.log("writing to lorebook " + bookName);
     let lorebookData = await loadWorldInfo(bookName);
 
     // 2. Check if the book was actually loaded
@@ -76,7 +86,7 @@ export async function writeToLorebookV2(subSection, logTitle, logContent, keywor
     entry.comment = logTitle; 
     entry.content = logContent;
     entry.key = Array.isArray(keywords) ? keywords : [];
-    entry.disabled = disabled;
+    entry.disabled = true;
     
     // We ensure it has an array for keys even if empty
     if (!Array.isArray(entry.key)) entry.key = [];
@@ -85,7 +95,7 @@ export async function writeToLorebookV2(subSection, logTitle, logContent, keywor
     await saveWorldInfo(bookName, lorebookData, true);
 
     // 6. Refresh the UI
-    reloadEditor(bookName);
+    await reloadEditor(bookName);
     //toastr.info("Entry uploaded successfully");
 }
 
@@ -110,7 +120,7 @@ function safeSlug(str) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-        .substring(0, 50);
+        .substring(0, 100);
 }
 
 function getLoreBookName(subsection){
@@ -118,6 +128,7 @@ function getLoreBookName(subsection){
     if (context.characterId === undefined){
     return null;
     }
+    console.log("CurrentChat:" + getCurrentChatId());
     const newLorebookName = safeSlug(`${MODULE_NAME}-${getCurrentChatId()}-${subsection}`);
     return newLorebookName;
 }

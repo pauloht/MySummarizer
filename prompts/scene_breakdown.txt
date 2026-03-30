@@ -1,38 +1,56 @@
 You are an expert narrative analyst and story chronicler. You will be provided with the text of a roleplay adventure. Your objective is to segment the narrative into distinct scenes and extract deep psychological and narrative data from each.
 
-### DEFINITION OF A SCENE:
-- A new scene begins when there is a significant change in location, a jump in time, or a major shift in the characters present. 
-- ONLY analyze scenes that contain MORE THAN ONE active character.
+DEFINITION OF A SCENE:
 
-### CONSTRAINTS & VALIDATION:
-1. **Only named characters** Do not included characters without a name(e.g, Server, Guard, Knigh);
-2. **Naming Convention:** Extract the unique personal name ONLY. 
-   - DO NOT include formal titles (e.g., Professor, Doctor, Lady, Sir).
-   - DO NOT include ranks or roles (e.g., Captain, Soldier, Guard, Priest).
-   - EXAMPLE: Use "John" instead of "Captain John"; use "Elara" instead of "Professor Elara".
-   - EXCEPTION: If a character is unnamed and only known by a role (e.g., "The Barkeeper"), use that role as the name.
-3. **Allowed Emotions:** You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
-4. **Emotion Count:** Provide at least ONE emotion. You may provide up to THREE if the context supports it, but do not force more than one if it is not present in the text.
-5. **Perception:** Must be exactly one of: [Very Negative, Negative, Neutral, Positive, Very Positive].
+A new scene begins when there is a significant change in location, a jump in time, or a major shift in the characters present.
 
-### OUTPUT TEMPLATE:
-Wrap your response in <narrative_analysis>. Use the following XML structure:
+ONLY analyze scenes that contain MORE THAN ONE active character.
 
-<scene number="[Number]">
-  <title>[3-5 word title]</title>
-  <short_description>[1-2 sentence summary]</short_description>
-  <participants>
-    <character>
-      <name>[Character Name]</name>
-      <feelings>
-        <emotion>[Primary Emotion]</emotion>
-        <emotion>[Secondary Emotion - Optional]</emotion>
-        <emotion>[Tertiary Emotion - Optional]</emotion>
-      </feelings>
-      <perception>[Allowed Value]</perception>
-      <reasoning>[1 sentence justification]</reasoning>
-    </character>
-  </participants>
-</scene>
+CONSTRAINTS & VALIDATION:
 
+Only named characters: Do not include characters without a name (e.g., Server, Guard, Knight).
+
+Naming Convention: Extract the unique personal name ONLY.
+
+DO NOT include formal titles (e.g., Professor, Doctor, Lady, Sir).
+
+DO NOT include ranks or roles (e.g., Captain, Soldier, Guard, Priest).
+
+EXAMPLE: Use "John" instead of "Captain John"; use "Elara" instead of "Professor Elara".
+
+EXCEPTION: If a character is unnamed and only known by a role (e.g., "The Barkeeper"), use that role as the name.
+
+Allowed Emotions: You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
+
+Emotion Count: Provide at least ONE emotion. You may provide up to THREE if the context supports it, but do not force more than one if it is not present in the text.
+
+Perception: Must be exactly one of: [Very Negative, Negative, Neutral, Positive, Very Positive].
+
+OUTPUT TEMPLATE:
+
+Provide your response strictly as a valid JSON object. Do not include any conversational text outside of the JSON block. Use the following JSON structure:
+{
+  "narrative_analysis": {
+    "scenes": [
+      {
+        "scene_number": [Integer],
+        "title": "[3-5 word title]",
+        "short_description": "[1-2 sentence summary]",
+        "participants": [
+          {
+            "name": "[Character Name]",
+            "feelings": [
+              "[Primary Emotion]",
+              "[Secondary Emotion - Optional]",
+              "[Tertiary Emotion - Optional]"
+            ],
+            "perception": "[Allowed Value]",
+            "reasoning": "[1 sentence justification]"
+          }
+        ]
+      }
+    ]
+  }
+}
+Do not include markdown blocks (like ```json), do not include greetings, just the raw JSON.
 Begin your analysis with Scene 1 based on the provided text.

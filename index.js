@@ -28,7 +28,7 @@ const KEY_DEBUG_CHAT_CONTENT = "my_debug";
  * Key to entry xml process content
  * @type {String|null}
  */
-const KEY_DEBUG_XML_SCENE_BREAKDOWN = "scene_breakdown";
+const KEY_DEBUG_JSON_SCENE_BREAKDOWN = "json_scene_breakdown";
 /**
  * Hold all characters ever found in the adventure.
  * @type {String|null}
@@ -112,34 +112,31 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio_pro
     callback: () => {
         processCharacterData()
     },
-    returns: `Create xml file from lorebook entry ${KEY_DEBUG_CHAT_CONTENT} and create xml file at entry ${KEY_DEBUG_XML_SCENE_BREAKDOWN}`,
+    returns: `Full process`,
 }));
 
-SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio',
-    callback: () => {
+SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'plenorio',  
+  callback: () => {
         testCommand()
     },
     returns: `temporary command for testing`,
 }));
 
 async function testCommand(){
-    const filePath = pathToFiles + "scene_breakdown.txt";
-    // Fetch the file via HTTP GET request
-    const response = await fetch(filePath);
-    
-    if (!response.ok) {
-        throw new Error(`Could not load file: ${response.statusText}`);
-    }
-    
-    // Convert the response to text
-    const systemPrompt = await response.text();
-    console.log("prompt is " + systemPrompt);
+    context = getContext();
+    const prompt = await readFromLorebookV2(
+      SUBSECTION_DEBUG,
+      KEY_DEBUG_CHAT_CONTENT + "_3"
+    );
+    await readFromLorebookCurrentVisibleChat(prompt);
 }
 
 async function processCharacterData(){
     console.log("processCharacterData!")
     context = getContext();
     const prompt = await writeToLorebookCurrentVisibleChat();
+    console.log("only writing for now, has to fix shit");
+    if (true) return ":)";
     await readFromLorebookCurrentVisibleChat(prompt);
     return "";
 }
@@ -276,15 +273,44 @@ async function writeToLorebookCurrentVisibleChat(){
               .join("\n");
           console.log(strAcumulador); 
           toastr.info(`size of msg: ${strAcumulador.length}`);
+          //subSection, logTitle, logContent, keywords = [], disabled = false
           await writeToLorebookV2(
-            SUBSECTION_DEBUG,
-            KEY_DEBUG_CHAT_CONTENT,
-            strAcumulador);
+              SUBSECTION_DEBUG,
+              KEY_DEBUG_CHAT_CONTENT,
+              strAcumulador,
+              [],
+              true
+            );
           return strAcumulador;
     } catch (error) {
         console.error('writeToLorebookCurrentVisibleChat error:', error);
         return { success: false, error: ('writeToLorebookCurrentVisibleChat', 'writeToLorebookCurrentVisibleChat-message: {{message}}', { message: error.message }) };
     }
+}
+
+function extractJson(result) {
+  // Regex explanation:
+  // ```json\s*     Matches the opening tag and optional newline
+  // ([\s\S]*?)     Captures everything inside (non-greedy)
+  // \s*```         Matches the closing tag and optional whitespace
+  const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
+
+  if (jsonMatch && jsonMatch[1]) {
+    try {
+      // jsonMatch[1] is the content inside the backticks
+      return jsonMatch[1].trim();
+    } catch (e) {
+      console.error("Failed to parse extracted JSON:", e);
+      return null;
+    }
+  }
+
+  // Fallback: If it's not wrapped in backticks, try parsing the whole string
+  try {
+    return result;
+  } catch (e) {
+    return null;
+  }
 }
 
 async function commandSendLLMTask_BreakScenes(prompt){
@@ -320,17 +346,25 @@ async function commandSendLLMTask_BreakScenes(prompt){
     tapToDismiss: false // Optional: prevents user from clicking it away early
     });
     const prefill = '';
-    const result = await generateRaw({
+    /**
+     * @type {String}
+     */
+    let result = await generateRaw({
         systemPrompt,
         prompt,
         prefill,
     });
+    result = extractJson(result);
     console.log("prompt sent");
     await writeToLorebookV2(
       SUBSECTION_CHARACTER,
-      KEY_DEBUG_XML_SCENE_BREAKDOWN, 
+      KEY_DEBUG_JSON_SCENE_BREAKDOWN, 
       result);
     console.log("lorebook created");
+    if (true){
+      console.log("force interrupt");
+      return;
+    }
     await processNarrativeXML(result);
   }catch (error) {
         console.error('readFromLorebookCurrentVisibleChat error:', error);
