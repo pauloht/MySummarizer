@@ -42,7 +42,7 @@ export async function readFromLorebookV2(subSection, logTitle){
 }
 
 export async function writeToLorebookV2(
-    subSection, logTitle, logContent, keywords = [], disabled = false) {
+    subSection, logTitle, logContent, keywords = [], disabled = true) {
     // 1. Load the Lorebook data
     // If the book doesn't exist, this returns an empty object or fails
     const bookName = getLoreBookName(subSection);
@@ -86,7 +86,7 @@ export async function writeToLorebookV2(
     entry.comment = logTitle; 
     entry.content = logContent;
     entry.key = Array.isArray(keywords) ? keywords : [];
-    entry.disabled = true;
+    entry.disable = true;
     
     // We ensure it has an array for keys even if empty
     if (!Array.isArray(entry.key)) entry.key = [];
