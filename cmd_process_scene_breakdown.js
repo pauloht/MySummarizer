@@ -5,7 +5,7 @@ import { readFromLorebookV2, writeToLorebookV2 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 // @ts-ignore
-import { PROMPTS_PATH, SUBSECTION_DEBUG, SUBSECTION_CHARACTER, KEY_DEBUG_CHAT_CONTENT, KEY_INTERNALINFO_ARRAY_CHARACTERS, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, KEY_SCENE_BREAKDOWN_PREFIX } from './constants.js';
+import { PROMPTS_PATH, SUBSECTION_DEBUG, SUBSECTION_CHARACTER, KEY_DEBUG_CHAT_CONTENT, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, KEY_SCENE_BREAKDOWN_PREFIX, KEY_CHARACTER_DATA_PREFIX } from './constants.js';
 export async function process_scene_breakdown() {
     const context = getContext();
     const metaRaw = await readFromLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA);
@@ -23,7 +23,7 @@ export async function process_scene_breakdown() {
     if (lastEntry.scene_breakdown_json) {
         // Already processed for this summary — skip LLM, go straight to character extraction
         const content = await readFromLorebookV2(SUBSECTION_CHARACTER, lastEntry.scene_breakdown_json);
-        await processNarrativeJson(content);
+        await processNarrativeJson(content, lastIndex);
         return;
     }
     const prompt = await readFromLorebookV2(SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT);
@@ -32,7 +32,7 @@ export async function process_scene_breakdown() {
         lastEntry.scene_breakdown_json = breakdownKey;
         await writeToLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, JSON.stringify(entries), [], true);
         const content = await readFromLorebookV2(SUBSECTION_CHARACTER, breakdownKey);
-        await processNarrativeJson(content);
+        await processNarrativeJson(content, lastIndex);
     }
 }
 async function runSceneBreakdownLLM(context, prompt, index) {
@@ -75,22 +75,36 @@ async function runSceneBreakdownLLM(context, prompt, index) {
         }
     }
 }
-async function processNarrativeJson(jsonContent) {
+async function processNarrativeJson(jsonContent, summaryIndex) {
     if (!jsonContent)
         return;
     const json = JSON.parse(jsonContent);
-    const existingCharactersRaw = await readFromLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_CHARACTERS);
-    const existingCharacters = existingCharactersRaw ? JSON.parse(existingCharactersRaw) : [];
-    console.log("json is ...");
-    console.log(json);
     const scenes = json.narrative_analysis.scenes;
     const characterSet = new Set();
     for (const scene of scenes) {
         for (const participant of scene.participants) {
-            characterSet.add(participant.name);
+            if (participant.is_named_character !== false) {
+                characterSet.add(participant.name);
+            }
         }
     }
-    const characterList = Array.from(characterSet);
-    await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(Array.from(characterSet)));
-    console.log("Characters in narrative:", characterList);
+    const newCharacters = [];
+    for (const name of characterSet) {
+        const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+        const existing = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+        if (!existing) {
+            const data = {
+                Name: name,
+                Included_Index: summaryIndex,
+                Description_Updated: null,
+                CharacterDescription: "",
+                Memories: [],
+            };
+            await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+            newCharacters.push(name);
+            console.log(`Created character entry for: ${name}`);
+        }
+    }
+    await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(newCharacters));
+    console.log("All named characters in narrative:", Array.from(characterSet));
 }

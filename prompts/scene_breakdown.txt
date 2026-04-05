@@ -8,17 +8,19 @@ ONLY analyze scenes that contain MORE THAN ONE active character.
 
 CONSTRAINTS & VALIDATION:
 
-Only named characters: Do not include characters without a name (e.g., Server, Guard, Knight).
+Include all characters: Include both named and unnamed characters (e.g., Guard, Barkeeper, Knight are valid).
 
 Naming Convention: Extract the unique personal name ONLY.
 
 DO NOT include formal titles (e.g., Professor, Doctor, Lady, Sir).
 
-DO NOT include ranks or roles (e.g., Captain, Soldier, Guard, Priest).
+DO NOT include ranks or roles as a prefix when the character has a personal name (e.g., Captain, Soldier, Guard, Priest).
 
 EXAMPLE: Use "John" instead of "Captain John"; use "Elara" instead of "Professor Elara".
 
-EXCEPTION: If a character is unnamed and only known by a role (e.g., "The Barkeeper"), use that role as the name.
+If a character has no personal name and is only known by a role or description (e.g., "Guard", "The Barkeeper"), use that role as the name and set is_named_character to false.
+
+is_named_character: Set to true if the character has a real personal name (e.g., "Bob", "Elara"). Set to false if the character is only known by a role or generic description (e.g., "Guard", "Barkeeper", "Knight").
 
 Allowed Emotions: You MUST choose emotions ONLY from this list: [Happy, Sad, Angry, Fearful, Disgusted, Surprised, Excited, Embarrassed, Flirty, Neutral].
 
@@ -39,6 +41,7 @@ Provide your response strictly as a valid JSON object. Do not include any conver
         "participants": [
           {
             "name": "[Character Name]",
+            "is_named_character": [true or false],
             "feelings": [
               "[Primary Emotion]",
               "[Secondary Emotion - Optional]",
