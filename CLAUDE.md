@@ -34,8 +34,10 @@ MySummarizer/
 │   ├── types/
 │   │   └── sillytavern.d.ts         ← type stubs for SillyTavern globals & modules
 │   ├── index.ts                      ← extension entry point, slash command registration
+│   ├── constants.ts                  ← all shared lorebook keys and path constants (single source of truth)
 │   ├── cmd_backupchat.ts             ← /plenorio_backupchat implementation
-│   ├── cmd_process_scene_breakdown.ts← /plenorio_process_scene_breakdown implementation
+│   ├── cmd_process_scene_breakdown.ts← /plenorio_process_scene_breakdown implementation (full pipeline: LLM → characters)
+│   ├── cmd_summarize_backup.ts       ← /plenorio_summarize_backup implementation
 │   ├── my_lorebook.ts                ← lorebook read/write abstraction (World Info API)
 │   ├── myutil.ts                     ← general utilities (e.g. extractJson)
 │   ├── xmlutil_memory.ts             ← XML serialization for memory entries
@@ -101,9 +103,9 @@ Registered in `src/index.ts` via `SlashCommandParser`. Each command's logic live
 | Command | File | Description |
 |---------|------|-------------|
 | `/plenorio_backupchat` | `src/cmd_backupchat.ts` | Collects visible chat messages (min 10, excludes last 2), saves them to lorebook, then marks them as hidden to reduce context |
-| `/plenorio_process_scene_breakdown` | `src/cmd_process_scene_breakdown.ts` | Reads a stored scene breakdown JSON from lorebook, extracts the character list, and writes new/existing character arrays back to lorebook |
+| `/plenorio_process_scene_breakdown` | `src/cmd_process_scene_breakdown.ts` | Full pipeline: reads backup from lorebook → sends to LLM for scene breakdown → saves JSON → extracts character list |
 | `/plenorio_summarize_backup` | `src/cmd_summarize_backup.ts` | Reads the backed-up chat from lorebook, sends it to the LLM for summarization, saves the summary result and updates the summary metadata array |
-| `/plenorio` | `src/index.ts` | Temp dev command — ignore |
+| `/plenorio` | `src/index.ts` | Reserved for isolated testing — body is intentionally empty |
 
 ---
 
@@ -141,14 +143,19 @@ Registered in `src/index.ts` via `SlashCommandParser`. Each command's logic live
 
 ## Lorebook Subsection Keys
 
-| Constant | Value | Defined in | Purpose |
-|----------|-------|------------|---------|
-| `SUBSECTION_DEBUG` | `"debug"` | `index.ts`, `cmd_backupchat.ts` | Debug/raw data subsection |
-| `SUBSECTION_CHARACTER` | `"characters_data"` | `index.ts`, `cmd_process_scene_breakdown.ts` | Character and scene data |
-| `KEY_DEBUG_CHAT_CONTENT` | `"my_debug"` | `index.ts`, `cmd_backupchat.ts` | Raw visible chat dump |
-| `KEY_DEBUG_JSON_SCENE_BREAKDOWN` | `"json_scene_breakdown"` | `index.ts` | LLM scene analysis output |
-| `KEY_INTERNALINFO_ARRAY_CHARACTERS` | `"characters_list"` | `cmd_process_scene_breakdown.ts` | All characters ever seen |
-| `KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS` | `"new_characters_list"` | `cmd_process_scene_breakdown.ts` | Characters from last sweep |
-| `SUBSECTION_SUMMARY` | `"summary"` | `cmd_summarize_backup.ts` | Summary subsection |
-| `KEY_SUMMARY_METADATA` | `"summary_metadata"` | `cmd_summarize_backup.ts` | JSON array tracking all past summaries |
-| `KEY_SUMMARY_RESULT_PREFIX` | `"summary_result"` | `cmd_summarize_backup.ts` | Prefix for per-summary entries (suffixed with timestamp) |
+All constants are defined in `src/constants.ts` and imported from there — never redeclare them locally.
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `PROMPTS_PATH` | `"/scripts/extensions/third-party/MySummarizer/prompts/"` | Base path for fetching prompt `.txt` files |
+| `SUBSECTION_DEBUG` | `"debug"` | Debug/raw data subsection |
+| `KEY_DEBUG_CHAT_CONTENT` | `"my_debug"` | Raw visible chat dump |
+| `SUBSECTION_CHARACTER` | `"characters_data"` | Character and scene data subsection |
+| `KEY_JSON_SCENE_BREAKDOWN` | `"json_scene_breakdown"` | LLM scene analysis output |
+| `KEY_INTERNALINFO_ARRAY_CHARACTERS` | `"characters_list"` | All characters ever seen |
+| `KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS` | `"new_characters_list"` | Characters from last sweep |
+| `SUBSECTION_SUMMARY` | `"summary"` | Summary subsection |
+| `KEY_SUMMARY_METADATA` | `"summary_metadata"` | JSON array tracking all past summaries |
+| `KEY_SUMMARY_RESULT_PREFIX` | `"summary_result"` | Prefix for per-summary entries (suffixed with index) |
+| `SUBSECTION_MARKDOWN` | `"markdown"` | Markdown-formatted summary subsection |
+| `KEY_MARKDOWN_ENTRY_PREFIX` | `"summary_md"` | Prefix for markdown summary entries (suffixed with index) |

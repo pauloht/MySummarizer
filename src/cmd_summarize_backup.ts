@@ -14,12 +14,13 @@ interface SummaryResult {
 
 const FINGERPRINT_LENGTH = 200;
 
-interface SummaryMetadataEntry {
+export interface SummaryMetadataEntry {
     dt_included: string;
     original_message_count: number;
     summarized_count: number;
     lore_book_id: string;
     content_fingerprint: string;
+    scene_breakdown_json?: string;
 }
 
 export async function summarize_backup(): Promise<void> {
