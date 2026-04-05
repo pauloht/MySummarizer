@@ -31,6 +31,8 @@ interface WorldInfoEntry {
     content: string;
     key: string[];
     disable: boolean;
+    constant: boolean;
+    order: number;
 }
 
 interface WorldInfoData {

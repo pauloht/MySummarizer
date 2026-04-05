@@ -90,6 +90,45 @@ export async function writeToLorebookV2(
     await reloadEditor(bookName);
 }
 
+export async function writeConstantLorebookEntry(
+    subSection: string, logTitle: string, logContent: string, order: number
+): Promise<void> {
+    const bookName = getLoreBookName(subSection);
+
+    if (!bookName) { toastr.info("!bookName"); return; }
+    if (!subSection) { toastr.info("!subSection"); return; }
+    if (!logTitle) { toastr.info("!logTitle"); return; }
+
+    console.log("writing constant entry to lorebook " + bookName);
+    let lorebookData = await loadWorldInfo(bookName);
+
+    if (!lorebookData || Object.keys(lorebookData.entries ?? {}).length === 0) {
+        console.log(`Book not found with name ${bookName}. Creating it now.`);
+        const created = await createNewWorldInfo(bookName, { interactive: false });
+        if (!created) { toastr.error(`Failed to create lorebook: ${bookName}`); return; }
+        lorebookData = await loadWorldInfo(bookName);
+        if (!lorebookData) { toastr.error(`Lorebook still not found after creation: ${bookName}`); return; }
+    }
+
+    let entry = getEntryByComment(lorebookData, logTitle);
+    if (entry) {
+        console.log(`Updating existing constant entry: ${logTitle}`);
+    } else {
+        console.log(`Creating new constant entry: ${logTitle}`);
+        entry = createWorldInfoEntry(bookName, lorebookData);
+    }
+
+    entry.comment = logTitle;
+    entry.content = logContent;
+    entry.key = [];
+    entry.disable = false;
+    entry.constant = true;
+    entry.order = order;
+
+    await saveWorldInfo(bookName, lorebookData, true);
+    await reloadEditor(bookName);
+}
+
 function getEntryByComment(lorebookData: WorldInfoData, title: string): WorldInfoEntry | undefined {
     return Object.values(lorebookData.entries).find(entry => entry.comment === title);
 }

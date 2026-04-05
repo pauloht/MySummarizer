@@ -1,7 +1,7 @@
 // @ts-ignore
 import { getContext } from "../../../extensions.js";
 // @ts-ignore
-import { readFromLorebookV2, writeToLorebookV2 } from './my_lorebook.js';
+import { readFromLorebookV2, writeToLorebookV2, writeConstantLorebookEntry } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 
@@ -12,6 +12,9 @@ export const SUBSECTION_SUMMARY = "summary";
 export const KEY_SUMMARY_METADATA = "summary_metadata";
 export const KEY_SUMMARY_RESULT_PREFIX = "summary_result";
 
+export const SUBSECTION_MARKDOWN = "markdown";
+export const KEY_MARKDOWN_ENTRY_PREFIX = "summary_md";
+
 const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
 
 interface SummaryResult {
@@ -19,11 +22,14 @@ interface SummaryResult {
     approximate_time_period: string;
 }
 
+const FINGERPRINT_LENGTH = 200;
+
 interface SummaryMetadataEntry {
     dt_included: string;
     original_message_count: number;
     summarized_count: number;
     lore_book_id: string;
+    content_fingerprint: string;
 }
 
 export async function summarize_backup(): Promise<void> {
@@ -38,6 +44,15 @@ export async function summarize_backup(): Promise<void> {
         const backupContent = await readFromLorebookV2(SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT);
         if (!backupContent || backupContent.length <= 10) {
             toastr.warning("No backup content found. Run /plenorio_backupchat first.");
+            return;
+        }
+
+        const fingerprint = backupContent.slice(0, FINGERPRINT_LENGTH);
+        const existingMetaRaw = await readFromLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA);
+        const existingEntries: SummaryMetadataEntry[] = existingMetaRaw ? JSON.parse(existingMetaRaw) : [];
+        const alreadySummarized = existingEntries.some(e => e.content_fingerprint === fingerprint);
+        if (alreadySummarized) {
+            toastr.warning("This backup has already been summarized. Run /plenorio_backupchat to get new content first.");
             return;
         }
 
@@ -67,10 +82,15 @@ export async function summarize_backup(): Promise<void> {
         const rawJson = extractJson(result);
         const parsed: SummaryResult = JSON.parse(rawJson);
 
-        const lorebookId = `${KEY_SUMMARY_RESULT_PREFIX}_${Date.now()}`;
+        const nextIndex = existingEntries.length + 1;
+        const lorebookId = `${KEY_SUMMARY_RESULT_PREFIX}_${nextIndex}`;
         await writeToLorebookV2(SUBSECTION_SUMMARY, lorebookId, rawJson, [], true);
 
-        await appendSummaryMetadata(lorebookId, messageCount, parsed);
+        const markdownId = `${KEY_MARKDOWN_ENTRY_PREFIX}_${nextIndex}`;
+        const markdownContent = `## ${parsed.approximate_time_period}\n\n${parsed.summary}`;
+        await writeConstantLorebookEntry(SUBSECTION_MARKDOWN, markdownId, markdownContent, nextIndex);
+
+        await appendSummaryMetadata(lorebookId, backupContent.length, fingerprint, parsed, existingEntries);
 
         toastr.success(`Summary saved (${parsed.approximate_time_period}).`);
     } catch (error: any) {
@@ -83,15 +103,13 @@ export async function summarize_backup(): Promise<void> {
     }
 }
 
-async function appendSummaryMetadata(lorebookId: string, messageCount: number, summarized: SummaryResult): Promise<void> {
-    const existing = await readFromLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA);
-    const entries: SummaryMetadataEntry[] = existing ? JSON.parse(existing) : [];
-
+async function appendSummaryMetadata(lorebookId: string, messageCount: number, fingerprint: string, summarized: SummaryResult, entries: SummaryMetadataEntry[]): Promise<void> {
     entries.push({
         dt_included: new Date().toISOString(),
         original_message_count: messageCount,
         summarized_count: summarized?.summary?.length ?? 0,
         lore_book_id: lorebookId,
+        content_fingerprint: fingerprint,
     });
 
     await writeToLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, JSON.stringify(entries), [], true);
