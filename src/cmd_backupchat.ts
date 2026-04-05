@@ -31,22 +31,22 @@ async function writeToLorebookCurrentVisibleChat(context: STContext): Promise<st
             return;
         }
 
-        const visibleMessages = chatHistory.filter(msg => {
-            return !msg.is_system && !msg.force_hide && !msg.is_extra;
-        });
+        const visibleWithIndices = chatHistory
+            .map((msg, idx) => ({ msg, idx }))
+            .filter(({ msg }) => !msg.is_system && !msg.is_extra);
 
-        if (visibleMessages.length < MIN_MESSAGES) {
-            toastr.warning(`Need at least ${MIN_MESSAGES} messages to backup. Currently ${visibleMessages.length}.`);
+        if (visibleWithIndices.length < MIN_MESSAGES) {
+            toastr.warning(`Need at least ${MIN_MESSAGES} messages to backup. Currently ${visibleWithIndices.length}.`);
             return;
         }
 
-        const messagesToBackup = visibleMessages.slice(0, visibleMessages.length - MESSAGES_TO_KEEP);
+        const toBackup = visibleWithIndices.slice(0, visibleWithIndices.length - MESSAGES_TO_KEEP);
 
-        const strAcumulador = messagesToBackup
-            .map(msg => `${msg.name}: ${msg.mes}`)
+        const strAcumulador = toBackup
+            .map(({ msg }) => `${msg.name}: ${msg.mes}`)
             .join("\n");
         console.log(strAcumulador);
-        toastr.info(`Backing up ${messagesToBackup.length} messages (${strAcumulador.length} chars)`);
+        toastr.info(`Backing up ${toBackup.length} messages (${strAcumulador.length} chars)`);
 
         await writeToLorebookV2(
             SUBSECTION_DEBUG,
@@ -56,12 +56,17 @@ async function writeToLorebookCurrentVisibleChat(context: STContext): Promise<st
             true
         );
 
-        for (const msg of messagesToBackup) {
-            msg.force_hide = true;
+        // Hide messages using ST's actual mechanism: is_system + DOM attribute update
+        for (const { msg, idx } of toBackup) {
+            msg.is_system = true;
+            const messageBlock = $(`.mes[mesid="${idx}"]`);
+            if (messageBlock.length) {
+                messageBlock.attr('is_system', 'true');
+            }
         }
         await saveChatConditional();
 
-        toastr.success(`Backed up and hid ${messagesToBackup.length} messages.`);
+        toastr.success(`Backed up and hid ${toBackup.length} messages.`);
         return strAcumulador;
     } catch (error: any) {
         console.error('writeToLorebookCurrentVisibleChat error:', error);

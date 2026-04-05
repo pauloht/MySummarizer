@@ -23,7 +23,6 @@ interface STMessage {
     name: string;
     mes: string;
     is_system: boolean;
-    force_hide: boolean;
     is_extra: boolean;
 }
 
@@ -55,6 +54,7 @@ declare module "*world-info.js" {
     export function createWorldInfoEntry(bookName: string, data: WorldInfoData): WorldInfoEntry;
     export function saveWorldInfo(name: string, data: WorldInfoData, silent?: boolean): Promise<void>;
     export function reloadEditor(name: string): Promise<void>;
+    export function createNewWorldInfo(name: string, options?: { interactive?: boolean }): Promise<boolean>;
 }
 
 declare module "*SlashCommandParser.js" {
