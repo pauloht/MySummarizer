@@ -63,7 +63,7 @@ export async function writeToLorebookV2(subSection, logTitle, logContent, keywor
     entry.comment = logTitle;
     entry.content = logContent;
     entry.key = Array.isArray(keywords) ? keywords : [];
-    entry.disable = true;
+    entry.disable = disabled;
     if (!Array.isArray(entry.key))
         entry.key = [];
     await saveWorldInfo(bookName, lorebookData, true);

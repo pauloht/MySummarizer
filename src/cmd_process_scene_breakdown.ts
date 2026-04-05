@@ -5,9 +5,11 @@ import { readFromLorebookV2, writeToLorebookV2 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 // @ts-ignore
-import { PROMPTS_PATH, SUBSECTION_DEBUG, SUBSECTION_CHARACTER, KEY_DEBUG_CHAT_CONTENT, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, KEY_SCENE_BREAKDOWN_PREFIX, KEY_CHARACTER_DATA_PREFIX } from './constants.js';
+import { PROMPTS_PATH, SUBSECTION_DEBUG, SUBSECTION_CHARACTER, KEY_DEBUG_CHAT_CONTENT, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, KEY_SCENE_BREAKDOWN_PREFIX, KEY_CHARACTER_DATA_PREFIX, SUBSECTION_MARKDOWN, KEY_CHARACTER_MD_PREFIX } from './constants.js';
 // @ts-ignore
 import { SummaryMetadataEntry } from './cmd_summarize_backup.js';
+
+const MAX_CHARACTER_MEMORIES = 5;
 
 interface CharacterData {
     Name: string;
@@ -34,20 +36,21 @@ export async function process_scene_breakdown(): Promise<void> {
     const lastEntry = entries[entries.length - 1];
     const lastIndex = entries.length;
 
+    const chatContent = await readFromLorebookV2(SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT);
+
     if (lastEntry.scene_breakdown_json) {
         // Already processed for this summary — skip LLM, go straight to character extraction
         const content = await readFromLorebookV2(SUBSECTION_CHARACTER, lastEntry.scene_breakdown_json);
-        await processNarrativeJson(content, lastIndex);
+        await processNarrativeJson(content, lastIndex, chatContent, context);
         return;
     }
 
-    const prompt = await readFromLorebookV2(SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT);
-    const breakdownKey = await runSceneBreakdownLLM(context, prompt, lastIndex);
+    const breakdownKey = await runSceneBreakdownLLM(context, chatContent, lastIndex);
     if (breakdownKey) {
         lastEntry.scene_breakdown_json = breakdownKey;
         await writeToLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, JSON.stringify(entries), [], true);
         const content = await readFromLorebookV2(SUBSECTION_CHARACTER, breakdownKey);
-        await processNarrativeJson(content, lastIndex);
+        await processNarrativeJson(content, lastIndex, chatContent, context);
     }
 }
 
@@ -94,7 +97,7 @@ async function runSceneBreakdownLLM(context: STContext, prompt: string | undefin
     }
 }
 
-async function processNarrativeJson(jsonContent: string | undefined, summaryIndex: number): Promise<void> {
+async function processNarrativeJson(jsonContent: string | undefined, summaryIndex: number, chatContent: string | undefined, context: STContext): Promise<void> {
     if (!jsonContent) return;
     const json = JSON.parse(jsonContent);
 
@@ -128,4 +131,111 @@ async function processNarrativeJson(jsonContent: string | undefined, summaryInde
 
     await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(newCharacters));
     console.log("All named characters in narrative:", Array.from(characterSet));
+
+    if (newCharacters.length > 0) {
+        await runCharacterDescriptionLLM(context, chatContent, newCharacters, summaryIndex);
+    }
+
+    await updateCharacterMemories(scenes, summaryIndex);
+    await updateCharacterMarkdown(characterSet);
+}
+
+async function updateCharacterMarkdown(characterSet: Set<string>): Promise<void> {
+    for (const name of characterSet) {
+        const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+        const raw = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+        if (!raw) continue;
+        const data: CharacterData = JSON.parse(raw);
+
+        const memoriesBlock = data.Memories.length > 0
+            ? data.Memories.map(m => `- ${m}`).join('\n')
+            : '_No memories recorded yet._';
+
+        const markdown = `# ${name}\n\n## Description\n${data.CharacterDescription || '_No description yet._'}\n\n## Memories\n${memoriesBlock}`;
+
+        const mdKey = `${KEY_CHARACTER_MD_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+        const keywords = [name, `${name}'s`];
+        await writeToLorebookV2(SUBSECTION_MARKDOWN, mdKey, markdown, keywords, false);
+        console.log(`Updated markdown entry for: ${name}`);
+    }
+}
+
+async function updateCharacterMemories(scenes: any[], summaryIndex: number): Promise<void> {
+    // Build a map of name -> new memory strings from this sweep's scenes
+    const memoriesByCharacter = new Map<string, string[]>();
+    for (const scene of scenes) {
+        for (const participant of scene.participants) {
+            if (participant.is_named_character === false) continue;
+            const name: string = participant.name;
+            const feelings: string = (participant.feelings as string[]).join(", ");
+            const memory = `[S${summaryIndex} Scene ${scene.scene_number} - ${scene.title}] ${scene.short_description} Felt: ${feelings}. ${participant.reasoning}`;
+            if (!memoriesByCharacter.has(name)) memoriesByCharacter.set(name, []);
+            memoriesByCharacter.get(name)!.push(memory);
+        }
+    }
+
+    for (const [name, newMemories] of memoriesByCharacter) {
+        const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+        const raw = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+        if (!raw) continue;
+        const data: CharacterData = JSON.parse(raw);
+        const combined = [...data.Memories, ...newMemories];
+        data.Memories = combined.slice(-MAX_CHARACTER_MEMORIES);
+        await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+        console.log(`Updated memories for ${name}: ${data.Memories.length} entries`);
+    }
+}
+
+async function runCharacterDescriptionLLM(context: STContext, chatContent: string | undefined, characterNames: string[], summaryIndex: number): Promise<void> {
+    let toast: object | null = null;
+    try {
+        if (!chatContent || chatContent.length <= 10) {
+            console.log("No chat content available for character description");
+            return;
+        }
+
+        const filePath = PROMPTS_PATH + "character_description.txt";
+        const response = await fetch(filePath);
+        if (!response.ok) {
+            throw new Error(`Could not load file: ${response.statusText}`);
+        }
+        const systemPrompt = await response.text();
+        if (!systemPrompt) {
+            console.error("Failed to parse character description system prompt");
+            return;
+        }
+
+        const nameList = characterNames.join(", ");
+        const prompt = `${chatContent}\n\nDescribe the following characters: ${nameList}`;
+
+        toast = toastr.info("Generating character descriptions...", null, {
+            timeOut: 0,
+            extendedTimeOut: 0,
+            tapToDismiss: false
+        });
+
+        let result = await context.generateRaw({ systemPrompt, prompt, prefill: '' });
+        result = extractJson(result);
+
+        const descriptions: Record<string, string> = JSON.parse(result);
+
+        for (const name of characterNames) {
+            const description = descriptions[name];
+            if (!description) continue;
+            const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+            const raw = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+            if (!raw) continue;
+            const data: CharacterData = JSON.parse(raw);
+            data.CharacterDescription = description;
+            data.Description_Updated = summaryIndex;
+            await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+            console.log(`Updated description for: ${name}`);
+        }
+    } catch (error: any) {
+        console.error('runCharacterDescriptionLLM error:', error);
+    } finally {
+        if (toast) {
+            toastr.clear(toast);
+        }
+    }
 }

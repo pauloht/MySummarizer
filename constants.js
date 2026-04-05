@@ -13,6 +13,7 @@ export const KEY_SUMMARY_RESULT_PREFIX = "summary_result";
 // Markdown subsection
 export const SUBSECTION_MARKDOWN = "markdown";
 export const KEY_MARKDOWN_ENTRY_PREFIX = "summary_md";
+export const KEY_CHARACTER_MD_PREFIX = "char_md";
 // Scene breakdown snapshots (one per summary cycle)
 export const KEY_SCENE_BREAKDOWN_PREFIX = "scene_breakdown_json";
 // Per-character data entries
