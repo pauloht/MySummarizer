@@ -6,6 +6,7 @@ import { extension_settings, getContext, loadExtensionSettings } from "../../../
 
 //You'll likely need to import some other functions from the main script
 import { readFromLorebookV2, writeToLorebookV2} from './my_lorebook.js';
+import { extractJson } from './myutil.js';
 import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
 import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
 // Keep track of where your extension is located, name should match repo name
@@ -161,31 +162,6 @@ async function writeToLorebookCurrentVisibleChat(){
     }
 }
 
-function extractJson(result) {
-  // Regex explanation:
-  // ```json\s*     Matches the opening tag and optional newline
-  // ([\s\S]*?)     Captures everything inside (non-greedy)
-  // \s*```         Matches the closing tag and optional whitespace
-  const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
-
-  if (jsonMatch && jsonMatch[1]) {
-    try {
-      // jsonMatch[1] is the content inside the backticks
-      return jsonMatch[1].trim();
-    } catch (e) {
-      console.error("Failed to parse extracted JSON:", e);
-      return null;
-    }
-  }
-
-  // Fallback: If it's not wrapped in backticks, try parsing the whole string
-  try {
-    return result;
-  } catch (e) {
-    return null;
-  }
-}
-
 async function commandSendLLMTask_BreakScenes(prompt){
   let toast = null;
   try {
@@ -296,60 +272,4 @@ async function processNarrativeJson(jsonContent) {
     const characterList = Array.from(characterSet);
     await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(Array.from(characterSet)));
     console.log("Characters in narrative:", characterList);
-}
-
-async function sendLLM_newcharacters(){
-  let toast = null;
-  try{
-    const prompt = 
-      "ONLY WRITE ABOUT CHARACTERS:" + 
-      await readFromLorebookV2(
-        SUBSECTION_CHARACTER,
-        KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS) + "\n" +
-      "<CHAT_LOG>" +
-      await readFromLorebookV2(
-        SUBSECTION_DEBUG,
-        KEY_DEBUG_CHAT_CONTENT) + "\n" +
-      "</CHAT_LOG>"
-    const generateRaw  = context.generateRaw;
-    const systemPrompt =   
-  `You are a character data extraction tool. I will provide a chat log and a list of character name. Extract the character's appearance, personality, and job into the following XML structure:
-
-<characters>
-<character> -- FOR EACH CHARACTER
-  <name></name>
-  <appearance></appearance>
-  <personality></personality>
-  <job></job>
-</character>
-<characters>
-
-Rules:
-1. Provide valid XML only.
-2. No preamble or post-analysis.
-3. If information is missing, fill the tag with "Unknown".
-4. Use concise, descriptive language.`
-    toast = toastr.info("LLM is thinking...", null, { 
-    timeOut: 0, 
-    extendedTimeOut: 0,
-    tapToDismiss: false // Optional: prevents user from clicking it away early
-    });
-    const prefill = '';
-    const result = await generateRaw({
-        systemPrompt,
-        prompt,
-        prefill,
-    });
-    console.log(prompt)
-    console.log("prompt sent");
-    await writeToLorebookV2(
-      SUBSECTION_CHARACTER,
-      KEY_INTERNALINFO_XML_NEW_CHARACTERS, result);
-  }catch(error){
-    console.error('processNewCharacterData error:', error);
-  }finally{
-    if (toast){
-      toastr.clear(toast);
-    }
-  }
 }
