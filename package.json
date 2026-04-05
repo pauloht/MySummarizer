@@ -1,0 +1,17 @@
+{
+  "name": "mysummarizer",
+  "version": "1.0.0",
+  "description": "*Provide a brief description of how your extension works, what problem it aims to solve.*",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
