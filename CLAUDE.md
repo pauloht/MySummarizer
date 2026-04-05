@@ -103,7 +103,7 @@ Registered in `src/index.ts` via `SlashCommandParser`. Each command's logic live
 | `/plenorio_backupchat` | `src/cmd_backupchat.ts` | Collects visible chat messages (min 10, excludes last 2), saves them to lorebook, then marks them as hidden to reduce context |
 | `/plenorio_process_scene_breakdown` | `src/cmd_process_scene_breakdown.ts` | Reads a stored scene breakdown JSON from lorebook, extracts the character list, and writes new/existing character arrays back to lorebook |
 | `/plenorio_summarize_backup` | `src/cmd_summarize_backup.ts` | Reads the backed-up chat from lorebook, sends it to the LLM for summarization, saves the summary result and updates the summary metadata array |
-| `/plenorio` | `src/index.ts` | Temp dev command — reads a stored chat snippet and sends it through the scene-breakdown LLM pipeline |
+| `/plenorio` | `src/index.ts` | Temp dev command — ignore |
 
 ---
 
