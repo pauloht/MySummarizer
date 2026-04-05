@@ -70,7 +70,7 @@ export async function summarize_backup(): Promise<void> {
         const lorebookId = `${KEY_SUMMARY_RESULT_PREFIX}_${Date.now()}`;
         await writeToLorebookV2(SUBSECTION_SUMMARY, lorebookId, rawJson, [], true);
 
-        await appendSummaryMetadata(lorebookId, messageCount);
+        await appendSummaryMetadata(lorebookId, messageCount, parsed);
 
         toastr.success(`Summary saved (${parsed.approximate_time_period}).`);
     } catch (error: any) {
@@ -83,14 +83,14 @@ export async function summarize_backup(): Promise<void> {
     }
 }
 
-async function appendSummaryMetadata(lorebookId: string, messageCount: number): Promise<void> {
+async function appendSummaryMetadata(lorebookId: string, messageCount: number, summarized: SummaryResult): Promise<void> {
     const existing = await readFromLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA);
     const entries: SummaryMetadataEntry[] = existing ? JSON.parse(existing) : [];
 
     entries.push({
         dt_included: new Date().toISOString(),
         original_message_count: messageCount,
-        summarized_count: messageCount,
+        summarized_count: summarized?.summary?.length ?? 0,
         lore_book_id: lorebookId,
     });
 
