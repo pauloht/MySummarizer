@@ -4,8 +4,8 @@ import { getContext } from "../../../extensions.js";
 import { saveChatConditional } from "../../../../script.js";
 // @ts-ignore
 import { writeToLorebookV2 } from './my_lorebook.js';
-const SUBSECTION_DEBUG = "debug";
-const KEY_DEBUG_CHAT_CONTENT = "my_debug";
+// @ts-ignore
+import { SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT } from './constants.js';
 const MIN_MESSAGES = 10;
 const MESSAGES_TO_KEEP = 2;
 export async function backup_visible_chat() {

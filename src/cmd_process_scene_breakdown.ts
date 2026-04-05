@@ -4,14 +4,8 @@ import { getContext } from "../../../extensions.js";
 import { readFromLorebookV2, writeToLorebookV2 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
-
-const SUBSECTION_DEBUG = "debug";
-const SUBSECTION_CHARACTER = "characters_data";
-const KEY_DEBUG_CHAT_CONTENT = "my_debug";
-const KEY_JSON_SCENE_BREAKDOWN = "json_scene_breakdown";
-const KEY_INTERNALINFO_ARRAY_CHARACTERS = "characters_list";
-const KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS = "new_characters_list";
-const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
+// @ts-ignore
+import { PROMPTS_PATH, SUBSECTION_DEBUG, SUBSECTION_CHARACTER, KEY_DEBUG_CHAT_CONTENT, KEY_JSON_SCENE_BREAKDOWN, KEY_INTERNALINFO_ARRAY_CHARACTERS, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS } from './constants.js';
 
 export async function process_scene_breakdown(): Promise<void> {
     const context = getContext();
@@ -30,7 +24,7 @@ async function runSceneBreakdownLLM(context: STContext, prompt: string | undefin
         }
         console.log(`Prompt read with size ${prompt.length}`);
 
-        const filePath = pathToFiles + "scene_breakdown.txt";
+        const filePath = PROMPTS_PATH + "scene_breakdown.txt";
         const response = await fetch(filePath);
         if (!response.ok) {
             throw new Error(`Could not load file: ${response.statusText}`);

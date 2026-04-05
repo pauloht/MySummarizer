@@ -4,18 +4,8 @@ import { getContext } from "../../../extensions.js";
 import { readFromLorebookV2, writeToLorebookV2, writeConstantLorebookEntry } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
-
-const SUBSECTION_DEBUG = "debug";
-const KEY_DEBUG_CHAT_CONTENT = "my_debug";
-
-export const SUBSECTION_SUMMARY = "summary";
-export const KEY_SUMMARY_METADATA = "summary_metadata";
-export const KEY_SUMMARY_RESULT_PREFIX = "summary_result";
-
-export const SUBSECTION_MARKDOWN = "markdown";
-export const KEY_MARKDOWN_ENTRY_PREFIX = "summary_md";
-
-const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
+// @ts-ignore
+import { PROMPTS_PATH, SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT, SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, KEY_SUMMARY_RESULT_PREFIX, SUBSECTION_MARKDOWN, KEY_MARKDOWN_ENTRY_PREFIX } from './constants.js';
 
 interface SummaryResult {
     summary: string;
@@ -59,7 +49,7 @@ export async function summarize_backup(): Promise<void> {
         const messageCount = backupContent.split("\n").filter((l: string) => l.trim().length > 0).length;
         toastr.info(`Summarizing ${messageCount} backed-up lines...`);
 
-        const filePath = pathToFiles + "summarize_backup.txt";
+        const filePath = PROMPTS_PATH + "summarize_backup.txt";
         const response = await fetch(filePath);
         if (!response.ok) {
             throw new Error(`Could not load prompt file: ${response.statusText}`);
