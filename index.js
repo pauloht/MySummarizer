@@ -11,15 +11,14 @@ import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.j
 import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
 // @ts-ignore
 import { backup_visible_chat } from './cmd_backupchat.js';
+// @ts-ignore
+import { process_scene_breakdown } from './cmd_process_scene_breakdown.js';
 const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 let context = undefined;
 const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
 const KEY_DEBUG_CHAT_CONTENT = "my_debug";
 const KEY_DEBUG_JSON_SCENE_BREAKDOWN = "json_scene_breakdown";
-const KEY_INTERNALINFO_ARRAY_CHARACTERS = "characters_list";
-const KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS = "new_characters_list";
-const KEY_INTERNALINFO_XML_NEW_CHARACTERS = "new_characters_list_xml";
 const SUBSECTION_DEBUG = "debug";
 const SUBSECTION_CHARACTER = "characters_data";
 jQuery(async () => {
@@ -42,7 +41,7 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({
 SlashCommandParser.addCommandObject(SlashCommand.fromProps({
     name: 'plenorio_process_scene_breakdown',
     callback: () => {
-        testSceneBreakdown();
+        process_scene_breakdown();
     },
     returns: `temporary command for testing`,
 }));
@@ -50,12 +49,6 @@ async function testCommand() {
     context = getContext();
     const prompt = await readFromLorebookV2(SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT + "_3");
     await readFromLorebookCurrentVisibleChat(prompt);
-}
-async function testSceneBreakdown() {
-    context = getContext();
-    const sceneName = "json_scene_breakdown_1";
-    const content = await readFromLorebookV2(SUBSECTION_CHARACTER, sceneName);
-    processNarrativeJson(content);
 }
 async function readFromLorebookCurrentVisibleChat(prompt) {
     try {
@@ -123,23 +116,4 @@ async function commandSendLLMTask_BreakScenes(prompt) {
             toastr.clear(toast);
         }
     }
-}
-async function processNarrativeJson(jsonContent) {
-    if (!jsonContent)
-        return;
-    const json = JSON.parse(jsonContent);
-    const existingCharactersRaw = await readFromLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_CHARACTERS);
-    const existingCharacters = existingCharactersRaw ? JSON.parse(existingCharactersRaw) : [];
-    console.log("json is ...");
-    console.log(json);
-    const scenes = json.narrative_analysis.scenes;
-    const characterSet = new Set();
-    for (const scene of scenes) {
-        for (const participant of scene.participants) {
-            characterSet.add(participant.name);
-        }
-    }
-    const characterList = Array.from(characterSet);
-    await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(Array.from(characterSet)));
-    console.log("Characters in narrative:", characterList);
 }

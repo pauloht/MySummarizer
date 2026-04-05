@@ -30,29 +30,27 @@ npm run watch    # auto-compile on save (recommended during dev)
 
 ```
 MySummarizer/
-├── src/                          ← ALL source code lives here
+├── src/                              ← ALL source code lives here
 │   ├── types/
-│   │   └── sillytavern.d.ts     ← type stubs for SillyTavern globals & modules
-│   ├── index.ts                  ← extension entry point, slash command registration
-│   ├── my_lorebook.ts            ← lorebook read/write abstraction (World Info API)
-│   ├── myutil.ts                 ← general utilities (e.g. extractJson)
-│   ├── xmlutil_memory.ts         ← XML serialization for memory entries
-│   └── xmlutil_characters.ts    ← XML serialization for character entries
+│   │   └── sillytavern.d.ts         ← type stubs for SillyTavern globals & modules
+│   ├── index.ts                      ← extension entry point, slash command registration
+│   ├── cmd_backupchat.ts             ← /plenorio_backupchat implementation
+│   ├── cmd_process_scene_breakdown.ts← /plenorio_process_scene_breakdown implementation
+│   ├── my_lorebook.ts                ← lorebook read/write abstraction (World Info API)
+│   ├── myutil.ts                     ← general utilities (e.g. extractJson)
+│   ├── xmlutil_memory.ts             ← XML serialization for memory entries
+│   └── xmlutil_characters.ts        ← XML serialization for character entries
 │
 ├── prompts/
-│   └── scene_breakdown.txt      ← system prompt sent to LLM for scene analysis
+│   └── scene_breakdown.txt          ← system prompt sent to LLM for scene analysis
 │
-├── index.js                      ← compiled output (do not edit)
-├── my_lorebook.js                ← compiled output
-├── myutil.js                     ← compiled output
-├── xmlutil_memory.js             ← compiled output
-├── xmlutil_characters.js         ← compiled output
+├── *.js                          ← compiled output (ignore those files)
 │
-├── manifest.json                 ← SillyTavern extension manifest (points to index.js)
-├── style.css                     ← extension UI styles
+├── manifest.json                     ← SillyTavern extension manifest (points to index.js)
+├── style.css                         ← extension UI styles
 ├── tsconfig.json
 ├── package.json
-└── CLAUDE.md                     ← this file
+└── CLAUDE.md                         ← this file
 ```
 
 ---
@@ -98,8 +96,13 @@ All SillyTavern imports in source files use `// @ts-ignore` as a fallback safety
 
 ## Slash Commands
 
-Registered in `src/index.ts` via `SlashCommandParser`:
+Registered in `src/index.ts` via `SlashCommandParser`. Each command's logic lives in its own file.
 
+| Command | File | Description |
+|---------|------|-------------|
+| `/plenorio_backupchat` | `src/cmd_backupchat.ts` | Collects visible chat messages (min 10, excludes last 2), saves them to lorebook, then marks them as hidden to reduce context |
+| `/plenorio_process_scene_breakdown` | `src/cmd_process_scene_breakdown.ts` | Reads a stored scene breakdown JSON from lorebook, extracts the character list, and writes new/existing character arrays back to lorebook |
+| `/plenorio` | `src/index.ts` | Temp dev command — reads a stored chat snippet and sends it through the scene-breakdown LLM pipeline |
 
 ---
 
@@ -137,13 +140,11 @@ Registered in `src/index.ts` via `SlashCommandParser`:
 
 ## Lorebook Subsection Keys
 
-Constants defined in `src/index.ts`:
-
-| Constant | Value | Purpose |
-|----------|-------|---------|
-| `SUBSECTION_DEBUG` | `"debug"` | Debug/raw data subsection |
-| `SUBSECTION_CHARACTER` | `"characters_data"` | Character and scene data |
-| `KEY_DEBUG_CHAT_CONTENT` | `"my_debug"` | Raw visible chat dump |
-| `KEY_DEBUG_JSON_SCENE_BREAKDOWN` | `"json_scene_breakdown"` | LLM scene analysis output |
-| `KEY_INTERNALINFO_ARRAY_CHARACTERS` | `"characters_list"` | All characters ever seen |
-| `KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS` | `"new_characters_list"` | Characters from last sweep |
+| Constant | Value | Defined in | Purpose |
+|----------|-------|------------|---------|
+| `SUBSECTION_DEBUG` | `"debug"` | `index.ts`, `cmd_backupchat.ts` | Debug/raw data subsection |
+| `SUBSECTION_CHARACTER` | `"characters_data"` | `index.ts`, `cmd_process_scene_breakdown.ts` | Character and scene data |
+| `KEY_DEBUG_CHAT_CONTENT` | `"my_debug"` | `index.ts`, `cmd_backupchat.ts` | Raw visible chat dump |
+| `KEY_DEBUG_JSON_SCENE_BREAKDOWN` | `"json_scene_breakdown"` | `index.ts` | LLM scene analysis output |
+| `KEY_INTERNALINFO_ARRAY_CHARACTERS` | `"characters_list"` | `cmd_process_scene_breakdown.ts` | All characters ever seen |
+| `KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS` | `"new_characters_list"` | `cmd_process_scene_breakdown.ts` | Characters from last sweep |
