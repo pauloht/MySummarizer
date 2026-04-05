@@ -5,16 +5,12 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 
 //You'll likely need to import some other functions from the main script
-import { parseExistingMemoryXML, serializeMemoriesToXML } from './xmlutil_memory.js';
-import { parseCharacterXML, serializeCharactersToXML } from './xmlutil_characters.js';
 import { readFromLorebookV2, writeToLorebookV2} from './my_lorebook.js';
-import { saveSettingsDebounced } from "../../../../script.js";
 import { SlashCommandParser } from "../../../slash-commands/SlashCommandParser.js";
 import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
 // Keep track of where your extension is located, name should match repo name
 const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const defaultSettings = {};
 let context = undefined;
 const pathToFiles = "/scripts/extensions/third-party/MySummarizer/prompts/";
 
