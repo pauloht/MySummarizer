@@ -1,7 +1,7 @@
 // @ts-ignore
 import { getContext } from "../../../extensions.js";
 // @ts-ignore
-import { saveChatConditional } from "../../../script.js";
+import { saveChatConditional } from "../../../../script.js";
 // @ts-ignore
 import { writeToLorebookV2 } from './my_lorebook.js';
 

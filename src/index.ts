@@ -13,6 +13,8 @@ import { SlashCommand } from "../../../slash-commands/SlashCommand.js";
 import { backup_visible_chat } from './cmd_backupchat.js';
 // @ts-ignore
 import { process_scene_breakdown } from './cmd_process_scene_breakdown.js';
+// @ts-ignore
+import { summarize_backup } from './cmd_summarize_backup.js';
 
 const extensionName = "MySummarizer";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -50,6 +52,14 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({
         process_scene_breakdown();
     },
     returns: `temporary command for testing`,
+}));
+
+SlashCommandParser.addCommandObject(SlashCommand.fromProps({
+    name: 'plenorio_summarize_backup',
+    callback: () => {
+        summarize_backup();
+    },
+    returns: `Summarizes the backed-up conversation and stores result in lorebook`,
 }));
 
 async function testCommand(): Promise<void> {

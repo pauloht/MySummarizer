@@ -7,7 +7,8 @@ import {
     loadWorldInfo,
     createWorldInfoEntry,
     saveWorldInfo,
-    reloadEditor
+    reloadEditor,
+    createNewWorldInfo
 } from '../../../world-info.js';
 
 const MODULE_NAME = 'LenorioGarden';
