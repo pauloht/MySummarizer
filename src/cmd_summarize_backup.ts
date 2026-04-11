@@ -1,7 +1,7 @@
 // @ts-ignore
 import { getContext } from "../../../extensions.js";
 // @ts-ignore
-import { readFromLorebookV2, writeToLorebookV3 } from './my_lorebook.js';
+import { LorebookPosition, readFromLorebookV2, writeToLorebookV3 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 // @ts-ignore
@@ -79,7 +79,14 @@ export async function summarize_backup(): Promise<void> {
 
         const markdownId = `${KEY_MARKDOWN_ENTRY_PREFIX}_${nextIndex}`;
         const markdownContent = `## ${parsed.approximate_time_period}\n\n${parsed.summary}`;
-        await writeToLorebookV3({ subSection: SUBSECTION_MARKDOWN, logTitle: markdownId, logContent: markdownContent, constant: true, order: nextIndex });
+        await writeToLorebookV3({ 
+            subSection: SUBSECTION_MARKDOWN, 
+            logTitle: markdownId, 
+            logContent: markdownContent, 
+            constant: true, 
+            order: nextIndex,
+            position: LorebookPosition.AfterCharDef 
+        });
 
         await appendSummaryMetadata(lorebookId, backupContent.length, fingerprint, parsed, existingEntries);
 

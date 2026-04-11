@@ -13,6 +13,18 @@ import {
 
 const MODULE_NAME = 'LenorioGarden';
 
+/** Mirrors SillyTavern's world_info_position enum. */
+export const enum LorebookPosition {
+    BeforeCharDef = 0,
+    AfterCharDef  = 1,
+    ANTop         = 2,
+    ANBottom      = 3,
+    AtDepth       = 4,
+    EMTop         = 5,
+    EMBottom      = 6,
+    Outlet        = 7,
+}
+
 export async function readFromLorebookV2(subSection: string, logTitle: string): Promise<string | undefined> {
     const bookName = getLoreBookName(subSection);
 
@@ -44,6 +56,7 @@ export interface WriteToLorebookOptions {
     disabled?: boolean;
     constant?: boolean;
     order?: number;
+    position?: LorebookPosition;
 }
 
 export async function writeToLorebookV3(opts: WriteToLorebookOptions): Promise<void> {
@@ -55,6 +68,7 @@ export async function writeToLorebookV3(opts: WriteToLorebookOptions): Promise<v
         disabled = true,
         constant = false,
         order,
+        position = LorebookPosition.BeforeCharDef,
     } = opts;
 
     const bookName = getLoreBookName(subSection);
@@ -87,6 +101,7 @@ export async function writeToLorebookV3(opts: WriteToLorebookOptions): Promise<v
     entry.key = Array.isArray(keywords) ? keywords : [];
     entry.disable = constant ? false : disabled;
     entry.constant = constant;
+    entry.position = position;
     if (constant && order !== undefined) entry.order = order;
 
     await saveWorldInfo(bookName, lorebookData, true);

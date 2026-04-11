@@ -33,6 +33,7 @@ interface WorldInfoEntry {
     disable: boolean;
     constant: boolean;
     order: number;
+    position: number;
 }
 
 interface WorldInfoData {

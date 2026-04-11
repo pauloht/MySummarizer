@@ -54,7 +54,14 @@ export async function summarize_backup() {
         await writeToLorebookV3({ subSection: SUBSECTION_SUMMARY, logTitle: lorebookId, logContent: rawJson });
         const markdownId = `${KEY_MARKDOWN_ENTRY_PREFIX}_${nextIndex}`;
         const markdownContent = `## ${parsed.approximate_time_period}\n\n${parsed.summary}`;
-        await writeToLorebookV3({ subSection: SUBSECTION_MARKDOWN, logTitle: markdownId, logContent: markdownContent, constant: true, order: nextIndex });
+        await writeToLorebookV3({
+            subSection: SUBSECTION_MARKDOWN,
+            logTitle: markdownId,
+            logContent: markdownContent,
+            constant: true,
+            order: nextIndex,
+            position: 1 /* LorebookPosition.AfterCharDef */
+        });
         await appendSummaryMetadata(lorebookId, backupContent.length, fingerprint, parsed, existingEntries);
         toastr.success(`Summary saved (${parsed.approximate_time_period}).`);
     }

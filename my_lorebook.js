@@ -24,7 +24,7 @@ export async function readFromLorebookV2(subSection, logTitle) {
     return entry.content;
 }
 export async function writeToLorebookV3(opts) {
-    const { subSection, logTitle, logContent, keywords = [], disabled = true, constant = false, order, } = opts;
+    const { subSection, logTitle, logContent, keywords = [], disabled = true, constant = false, order, position = 0 /* LorebookPosition.BeforeCharDef */, } = opts;
     const bookName = getLoreBookName(subSection);
     if (!bookName) {
         toastr.info("!bookName");
@@ -66,6 +66,7 @@ export async function writeToLorebookV3(opts) {
     entry.key = Array.isArray(keywords) ? keywords : [];
     entry.disable = constant ? false : disabled;
     entry.constant = constant;
+    entry.position = position;
     if (constant && order !== undefined)
         entry.order = order;
     await saveWorldInfo(bookName, lorebookData, true);
