@@ -36,70 +36,34 @@ export async function readFromLorebookV2(subSection: string, logTitle: string): 
     return entry.content;
 }
 
-export async function writeToLorebookV2(
-    subSection: string, logTitle: string, logContent: string, keywords: string[] = [], disabled: boolean = true
-): Promise<void> {
-    const bookName = getLoreBookName(subSection);
-
-    if (!bookName) {
-        toastr.info("!bookName");
-        return;
-    }
-    if (!subSection) {
-        toastr.info("!subSection");
-        return;
-    }
-    if (!logTitle) {
-        toastr.info("!logTitle");
-        return;
-    }
-    console.log("writing to lorebook " + bookName);
-    let lorebookData = await loadWorldInfo(bookName);
-
-    if (!lorebookData || Object.keys(lorebookData.entries ?? {}).length === 0) {
-        console.log(`Book not found with name ${bookName}. Creating it now.`);
-        const created = await createNewWorldInfo(bookName, { interactive: false });
-        if (!created) {
-            toastr.error(`Failed to create lorebook: ${bookName}`);
-            return;
-        }
-        lorebookData = await loadWorldInfo(bookName);
-        if (!lorebookData) {
-            toastr.error(`Lorebook still not found after creation: ${bookName}`);
-            return;
-        }
-    }
-
-    let entry = getEntryByComment(lorebookData, logTitle);
-
-    if (entry) {
-        console.log(`Updating existing entry: ${logTitle}`);
-    } else {
-        console.log(`Creating new entry: ${logTitle}`);
-        entry = createWorldInfoEntry(bookName, lorebookData);
-    }
-
-    entry.comment = logTitle;
-    entry.content = logContent;
-    entry.key = Array.isArray(keywords) ? keywords : [];
-    entry.disable = disabled;
-
-    if (!Array.isArray(entry.key)) entry.key = [];
-
-    await saveWorldInfo(bookName, lorebookData, true);
-    await reloadEditor(bookName);
+export interface WriteToLorebookOptions {
+    subSection: string;
+    logTitle: string;
+    logContent: string;
+    keywords?: string[];
+    disabled?: boolean;
+    constant?: boolean;
+    order?: number;
 }
 
-export async function writeConstantLorebookEntry(
-    subSection: string, logTitle: string, logContent: string, order: number
-): Promise<void> {
+export async function writeToLorebookV3(opts: WriteToLorebookOptions): Promise<void> {
+    const {
+        subSection,
+        logTitle,
+        logContent,
+        keywords = [],
+        disabled = true,
+        constant = false,
+        order,
+    } = opts;
+
     const bookName = getLoreBookName(subSection);
 
     if (!bookName) { toastr.info("!bookName"); return; }
     if (!subSection) { toastr.info("!subSection"); return; }
     if (!logTitle) { toastr.info("!logTitle"); return; }
 
-    console.log("writing constant entry to lorebook " + bookName);
+    console.log("writing to lorebook " + bookName);
     let lorebookData = await loadWorldInfo(bookName);
 
     if (!lorebookData || Object.keys(lorebookData.entries ?? {}).length === 0) {
@@ -112,18 +76,18 @@ export async function writeConstantLorebookEntry(
 
     let entry = getEntryByComment(lorebookData, logTitle);
     if (entry) {
-        console.log(`Updating existing constant entry: ${logTitle}`);
+        console.log(`Updating existing entry: ${logTitle}`);
     } else {
-        console.log(`Creating new constant entry: ${logTitle}`);
+        console.log(`Creating new entry: ${logTitle}`);
         entry = createWorldInfoEntry(bookName, lorebookData);
     }
 
     entry.comment = logTitle;
     entry.content = logContent;
-    entry.key = [];
-    entry.disable = false;
-    entry.constant = true;
-    entry.order = order;
+    entry.key = Array.isArray(keywords) ? keywords : [];
+    entry.disable = constant ? false : disabled;
+    entry.constant = constant;
+    if (constant && order !== undefined) entry.order = order;
 
     await saveWorldInfo(bookName, lorebookData, true);
     await reloadEditor(bookName);

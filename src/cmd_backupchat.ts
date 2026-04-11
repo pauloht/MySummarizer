@@ -3,7 +3,7 @@ import { getContext } from "../../../extensions.js";
 // @ts-ignore
 import { saveChatConditional } from "../../../../script.js";
 // @ts-ignore
-import { writeToLorebookV2 } from './my_lorebook.js';
+import { writeToLorebookV3 } from './my_lorebook.js';
 // @ts-ignore
 import { SUBSECTION_DEBUG, KEY_DEBUG_CHAT_CONTENT } from './constants.js';
 
@@ -47,13 +47,11 @@ async function writeToLorebookCurrentVisibleChat(context: STContext): Promise<st
         console.log(strAcumulador);
         toastr.info(`Backing up ${toBackup.length} messages (${strAcumulador.length} chars)`);
 
-        await writeToLorebookV2(
-            SUBSECTION_DEBUG,
-            KEY_DEBUG_CHAT_CONTENT,
-            strAcumulador,
-            [],
-            true
-        );
+        await writeToLorebookV3({
+            subSection: SUBSECTION_DEBUG,
+            logTitle: KEY_DEBUG_CHAT_CONTENT,
+            logContent: strAcumulador,
+        });
 
         // Hide messages using ST's actual mechanism: is_system + DOM attribute update
         for (const { msg, idx } of toBackup) {

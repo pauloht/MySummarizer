@@ -1,7 +1,7 @@
 // @ts-ignore
 import { getContext } from "../../../extensions.js";
 // @ts-ignore
-import { readFromLorebookV2, writeToLorebookV2 } from './my_lorebook.js';
+import { readFromLorebookV2, writeToLorebookV3 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 // @ts-ignore
@@ -48,7 +48,7 @@ export async function process_scene_breakdown(): Promise<void> {
     const breakdownKey = await runSceneBreakdownLLM(context, chatContent, lastIndex);
     if (breakdownKey) {
         lastEntry.scene_breakdown_json = breakdownKey;
-        await writeToLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, JSON.stringify(entries), [], true);
+        await writeToLorebookV3({ subSection: SUBSECTION_SUMMARY, logTitle: KEY_SUMMARY_METADATA, logContent: JSON.stringify(entries) });
         const content = await readFromLorebookV2(SUBSECTION_CHARACTER, breakdownKey);
         await processNarrativeJson(content, lastIndex, chatContent, context);
     }
@@ -84,7 +84,7 @@ async function runSceneBreakdownLLM(context: STContext, prompt: string | undefin
         result = extractJson(result);
 
         const lorebookKey = `${KEY_SCENE_BREAKDOWN_PREFIX}_${index}`;
-        await writeToLorebookV2(SUBSECTION_CHARACTER, lorebookKey, result, [], true);
+        await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: lorebookKey, logContent: result });
         console.log(`Scene breakdown saved to lorebook as ${lorebookKey}`);
         return lorebookKey;
     } catch (error: any) {
@@ -123,13 +123,13 @@ async function processNarrativeJson(jsonContent: string | undefined, summaryInde
                 CharacterDescription: "",
                 Memories: [],
             };
-            await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+            await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: entryKey, logContent: JSON.stringify(data) });
             newCharacters.push(name);
             console.log(`Created character entry for: ${name}`);
         }
     }
 
-    await writeToLorebookV2(SUBSECTION_CHARACTER, KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, JSON.stringify(newCharacters));
+    await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, logContent: JSON.stringify(newCharacters) });
     console.log("All named characters in narrative:", Array.from(characterSet));
 
     if (newCharacters.length > 0) {
@@ -155,7 +155,7 @@ async function updateCharacterMarkdown(characterSet: Set<string>): Promise<void>
 
         const mdKey = `${KEY_CHARACTER_MD_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
         const keywords = [name, `${name}'s`];
-        await writeToLorebookV2(SUBSECTION_MARKDOWN, mdKey, markdown, keywords, false);
+        await writeToLorebookV3({ subSection: SUBSECTION_MARKDOWN, logTitle: mdKey, logContent: markdown, keywords, disabled: false });
         console.log(`Updated markdown entry for: ${name}`);
     }
 }
@@ -181,7 +181,7 @@ async function updateCharacterMemories(scenes: any[], summaryIndex: number): Pro
         const data: CharacterData = JSON.parse(raw);
         const combined = [...data.Memories, ...newMemories];
         data.Memories = combined.slice(-MAX_CHARACTER_MEMORIES);
-        await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+        await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: entryKey, logContent: JSON.stringify(data) });
         console.log(`Updated memories for ${name}: ${data.Memories.length} entries`);
     }
 }
@@ -228,7 +228,7 @@ async function runCharacterDescriptionLLM(context: STContext, chatContent: strin
             const data: CharacterData = JSON.parse(raw);
             data.CharacterDescription = description;
             data.Description_Updated = summaryIndex;
-            await writeToLorebookV2(SUBSECTION_CHARACTER, entryKey, JSON.stringify(data), [], true);
+            await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: entryKey, logContent: JSON.stringify(data) });
             console.log(`Updated description for: ${name}`);
         }
     } catch (error: any) {

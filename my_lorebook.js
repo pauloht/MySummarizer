@@ -23,7 +23,8 @@ export async function readFromLorebookV2(subSection, logTitle) {
     }
     return entry.content;
 }
-export async function writeToLorebookV2(subSection, logTitle, logContent, keywords = [], disabled = true) {
+export async function writeToLorebookV3(opts) {
+    const { subSection, logTitle, logContent, keywords = [], disabled = true, constant = false, order, } = opts;
     const bookName = getLoreBookName(subSection);
     if (!bookName) {
         toastr.info("!bookName");
@@ -63,55 +64,10 @@ export async function writeToLorebookV2(subSection, logTitle, logContent, keywor
     entry.comment = logTitle;
     entry.content = logContent;
     entry.key = Array.isArray(keywords) ? keywords : [];
-    entry.disable = disabled;
-    if (!Array.isArray(entry.key))
-        entry.key = [];
-    await saveWorldInfo(bookName, lorebookData, true);
-    await reloadEditor(bookName);
-}
-export async function writeConstantLorebookEntry(subSection, logTitle, logContent, order) {
-    const bookName = getLoreBookName(subSection);
-    if (!bookName) {
-        toastr.info("!bookName");
-        return;
-    }
-    if (!subSection) {
-        toastr.info("!subSection");
-        return;
-    }
-    if (!logTitle) {
-        toastr.info("!logTitle");
-        return;
-    }
-    console.log("writing constant entry to lorebook " + bookName);
-    let lorebookData = await loadWorldInfo(bookName);
-    if (!lorebookData || Object.keys(lorebookData.entries ?? {}).length === 0) {
-        console.log(`Book not found with name ${bookName}. Creating it now.`);
-        const created = await createNewWorldInfo(bookName, { interactive: false });
-        if (!created) {
-            toastr.error(`Failed to create lorebook: ${bookName}`);
-            return;
-        }
-        lorebookData = await loadWorldInfo(bookName);
-        if (!lorebookData) {
-            toastr.error(`Lorebook still not found after creation: ${bookName}`);
-            return;
-        }
-    }
-    let entry = getEntryByComment(lorebookData, logTitle);
-    if (entry) {
-        console.log(`Updating existing constant entry: ${logTitle}`);
-    }
-    else {
-        console.log(`Creating new constant entry: ${logTitle}`);
-        entry = createWorldInfoEntry(bookName, lorebookData);
-    }
-    entry.comment = logTitle;
-    entry.content = logContent;
-    entry.key = [];
-    entry.disable = false;
-    entry.constant = true;
-    entry.order = order;
+    entry.disable = constant ? false : disabled;
+    entry.constant = constant;
+    if (constant && order !== undefined)
+        entry.order = order;
     await saveWorldInfo(bookName, lorebookData, true);
     await reloadEditor(bookName);
 }

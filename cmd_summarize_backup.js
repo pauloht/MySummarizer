@@ -1,7 +1,7 @@
 // @ts-ignore
 import { getContext } from "../../../extensions.js";
 // @ts-ignore
-import { readFromLorebookV2, writeToLorebookV2, writeConstantLorebookEntry } from './my_lorebook.js';
+import { readFromLorebookV2, writeToLorebookV3 } from './my_lorebook.js';
 // @ts-ignore
 import { extractJson } from './myutil.js';
 // @ts-ignore
@@ -51,10 +51,10 @@ export async function summarize_backup() {
         const parsed = JSON.parse(rawJson);
         const nextIndex = existingEntries.length + 1;
         const lorebookId = `${KEY_SUMMARY_RESULT_PREFIX}_${nextIndex}`;
-        await writeToLorebookV2(SUBSECTION_SUMMARY, lorebookId, rawJson, [], true);
+        await writeToLorebookV3({ subSection: SUBSECTION_SUMMARY, logTitle: lorebookId, logContent: rawJson });
         const markdownId = `${KEY_MARKDOWN_ENTRY_PREFIX}_${nextIndex}`;
         const markdownContent = `## ${parsed.approximate_time_period}\n\n${parsed.summary}`;
-        await writeConstantLorebookEntry(SUBSECTION_MARKDOWN, markdownId, markdownContent, nextIndex);
+        await writeToLorebookV3({ subSection: SUBSECTION_MARKDOWN, logTitle: markdownId, logContent: markdownContent, constant: true, order: nextIndex });
         await appendSummaryMetadata(lorebookId, backupContent.length, fingerprint, parsed, existingEntries);
         toastr.success(`Summary saved (${parsed.approximate_time_period}).`);
     }
@@ -76,5 +76,5 @@ async function appendSummaryMetadata(lorebookId, messageCount, fingerprint, summ
         lore_book_id: lorebookId,
         content_fingerprint: fingerprint,
     });
-    await writeToLorebookV2(SUBSECTION_SUMMARY, KEY_SUMMARY_METADATA, JSON.stringify(entries), [], true);
+    await writeToLorebookV3({ subSection: SUBSECTION_SUMMARY, logTitle: KEY_SUMMARY_METADATA, logContent: JSON.stringify(entries) });
 }
