@@ -22,3 +22,19 @@ Option B (watch mode, easier):
   1. Run: npm run watch   (keep this terminal open)
   2. Edit files in src/  (auto-compiles on each save)
   3. Reload the extension in SillyTavern
+
+== SILLYTAVERN BACKUP ==
+
+Lorebook (World Info) entries are stored as JSON files in:
+  data/default-user/worlds/
+
+Zip that folder to back up all lorebook entries.
+
+For a full user data backup, zip the entire:
+  data/default-user/
+
+This contains:
+  worlds/        — lorebooks
+  chats/         — chat histories
+  characters/    — character cards
+  user-settings.json — settings

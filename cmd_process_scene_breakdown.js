@@ -90,6 +90,7 @@ async function processNarrativeJson(jsonContent, summaryIndex, chatContent, cont
         }
     }
     const newCharacters = [];
+    const existingCharacters = [];
     for (const name of characterSet) {
         const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
         const existing = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
@@ -105,11 +106,17 @@ async function processNarrativeJson(jsonContent, summaryIndex, chatContent, cont
             newCharacters.push(name);
             console.log(`Created character entry for: ${name}`);
         }
+        else {
+            existingCharacters.push(name);
+        }
     }
     await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: KEY_INTERNALINFO_ARRAY_NEW_CHARACTERS, logContent: JSON.stringify(newCharacters) });
     console.log("All named characters in narrative:", Array.from(characterSet));
     if (newCharacters.length > 0) {
         await runCharacterDescriptionLLM(context, chatContent, newCharacters, summaryIndex);
+    }
+    if (existingCharacters.length > 0) {
+        await runCharacterUpdateLLM(context, chatContent, existingCharacters, summaryIndex);
     }
     await updateCharacterMemories(scenes, summaryIndex);
     await updateCharacterMarkdown(characterSet);
@@ -156,6 +163,71 @@ async function updateCharacterMemories(scenes, summaryIndex) {
         data.Memories = combined.slice(-MAX_CHARACTER_MEMORIES);
         await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: entryKey, logContent: JSON.stringify(data) });
         console.log(`Updated memories for ${name}: ${data.Memories.length} entries`);
+    }
+}
+async function runCharacterUpdateLLM(context, chatContent, existingCharacters, summaryIndex) {
+    let toast = null;
+    try {
+        if (!chatContent || chatContent.length <= 10) {
+            console.log("No chat content available for character update");
+            return;
+        }
+        const filePath = PROMPTS_PATH + "character_update.txt";
+        const response = await fetch(filePath);
+        if (!response.ok) {
+            throw new Error(`Could not load file: ${response.statusText}`);
+        }
+        const systemPrompt = await response.text();
+        if (!systemPrompt) {
+            console.error("Failed to parse character update system prompt");
+            return;
+        }
+        // Build the known-characters block
+        const characterBlocks = [];
+        for (const name of existingCharacters) {
+            const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+            const raw = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+            if (!raw)
+                continue;
+            const data = JSON.parse(raw);
+            const memoriesText = data.Memories.length > 0
+                ? data.Memories.map(m => `- ${m}`).join('\n')
+                : '- (none)';
+            characterBlocks.push(`[${name}]\nDescription: ${data.CharacterDescription || '(none)'}\nRecent Memories:\n${memoriesText}`);
+        }
+        if (characterBlocks.length === 0)
+            return;
+        const prompt = `=== KNOWN CHARACTERS ===\n${characterBlocks.join('\n\n')}\n\n=== NEW CHAT CONTENT ===\n${chatContent}`;
+        toast = toastr.info("Updating existing character descriptions...", null, {
+            timeOut: 0,
+            extendedTimeOut: 0,
+            tapToDismiss: false
+        });
+        let result = await context.generateRaw({ systemPrompt, prompt, prefill: '' });
+        result = extractJson(result);
+        const updates = JSON.parse(result);
+        for (const name of existingCharacters) {
+            const updated = updates[name];
+            if (!updated)
+                continue;
+            const entryKey = `${KEY_CHARACTER_DATA_PREFIX}_${name.toLowerCase().replace(/\s+/g, '_')}`;
+            const raw = await readFromLorebookV2(SUBSECTION_CHARACTER, entryKey);
+            if (!raw)
+                continue;
+            const data = JSON.parse(raw);
+            data.CharacterDescription = updated;
+            data.Description_Updated = summaryIndex;
+            await writeToLorebookV3({ subSection: SUBSECTION_CHARACTER, logTitle: entryKey, logContent: JSON.stringify(data) });
+            console.log(`Updated description for existing character: ${name}`);
+        }
+    }
+    catch (error) {
+        console.error('runCharacterUpdateLLM error:', error);
+    }
+    finally {
+        if (toast) {
+            toastr.clear(toast);
+        }
     }
 }
 async function runCharacterDescriptionLLM(context, chatContent, characterNames, summaryIndex) {
